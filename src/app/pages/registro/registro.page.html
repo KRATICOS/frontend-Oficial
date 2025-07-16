@@ -8,18 +8,25 @@
   <ion-card class="register-card">
     <form [formGroup]="userForm" (ngSubmit)="onSubmit()">
       <ion-card-header class="avatar-container">
-        <div class="avatar-wrapper">
-          <ion-avatar class="profile-avatar">
-            <img [src]="imagePreview || 'assets/utvcoIMAGEN.jpg'" alt="Foto de perfil" />
-          </ion-avatar>
+  <div class="avatar-wrapper">
+    <ion-avatar class="profile-avatar">
+      <img [src]="imagePreview || 'assets/utvcoIMAGEN.jpg'" alt="Foto de perfil" />
+    </ion-avatar>
 
-          <ion-button fill="clear" class="upload-btn" (click)="fileInput.click()" size="small">
-            <ion-icon name="image-outline"></ion-icon>
-          </ion-button>
+    <ion-button fill="clear" class="upload-btn" (click)="fileInput.click()" size="small">
+      <ion-icon name="camera-outline"></ion-icon>
+    </ion-button>
 
-          <input type="file" hidden #fileInput (change)="onFileSelected($event)" accept="image/*" />
-        </div>
-      </ion-card-header>
+    <input 
+      type="file" 
+      hidden 
+      #fileInput 
+      (change)="onFileSelected($event)" 
+      accept="image/*"
+    />
+  </div>
+</ion-card-header>
+
 
       <ion-item>
         <ion-label position="floating">Nombre</ion-label>
