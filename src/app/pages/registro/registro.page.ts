@@ -83,55 +83,59 @@ export class RegistroPage {
     }
   }
 
-  async onSubmit() {
-    console.log('Form validity:', this.userForm.valid);
-    console.log('Form value:', this.userForm.value);
+ async onSubmit() {
+  console.log('Form validity:', this.userForm.valid);
+  console.log('Form value:', this.userForm.value);
 
-    if (this.userForm.invalid) {
-      this.presentToast('Por favor, completa todos los campos correctamente.', 'warning');
-      return;
-    }
+  if (this.userForm.invalid) {
+    this.presentToast('Por favor, completa todos los campos correctamente.', 'warning');
+    return;
+  }
 
-    const loading = await this.loadingController.create({
-      message: 'Registrando usuario...',
-      spinner: 'circles'
-    });
-    await loading.present();
+  const loading = await this.loadingController.create({
+    message: 'Registrando usuario...',
+    spinner: 'circles'
+  });
+  await loading.present();
 
-    const formData = new FormData();
-    formData.append('name', this.userForm.value.name);
-    formData.append('email', this.userForm.value.email);
-    formData.append('password', this.userForm.value.password);
-    formData.append('tel', this.userForm.value.tel);
-    formData.append('matricula', this.userForm.value.matricula);
-    formData.append('grupo', this.userForm.value.grupo);
-    formData.append('rol', 'user'); // siempre user por defecto
+  // Usamos FormData porque tu backend usa multer.any()
+  const formData = new FormData();
+  formData.append('name', this.userForm.value.name);
+  formData.append('email', this.userForm.value.email);
+  formData.append('password', this.userForm.value.password);
+  formData.append('tel', this.userForm.value.tel);
+  formData.append('matricula', this.userForm.value.matricula);
+  formData.append('grupo', this.userForm.value.grupo);
+  formData.append('rol', 'user'); // rol fijo
 
-    if (this.selectedFiles.length > 0) {
-      this.selectedFiles.forEach(file => {
-        formData.append('files', file);
-      });
-    }
-
-    // Debug: mostrar contenido de FormData
-    formData.forEach((value, key) => {
-      console.log(`FormData key=${key} value=`, value);
-    });
-
-    this.userService.createUser(formData).subscribe({
-      next: async () => {
-        await loading.dismiss();
-        this.presentToast('Usuario creado correctamente.', 'success');
-        this.resetForm();
-        this.router.navigate(['/login']);
-      },
-      error: async (err) => {
-        await loading.dismiss();
-        console.error('Error del backend:', err);
-        this.presentToast('Error al crear el usuario: ' + (err.error?.message || err.statusText), 'danger');
-      }
+  // Verificar y agregar archivos si existen
+  if (this.selectedFiles && this.selectedFiles.length > 0) {
+    this.selectedFiles.forEach(file => {
+      formData.append('files', file); // el campo debe llamarse 'files'
     });
   }
+
+  // Debug para confirmar envío de FormData
+  formData.forEach((value, key) => {
+    console.log(`FormData key=${key}, value=${value}`);
+  });
+
+  this.userService.createUser(formData).subscribe({
+    next: async (res) => {
+      console.log('Respuesta del backend:', res);
+      await loading.dismiss();
+      this.presentToast('Usuario creado correctamente.', 'success');
+      this.resetForm();
+      this.router.navigate(['/login']);
+    },
+    error: async (err) => {
+      await loading.dismiss();
+      console.error('Error al crear usuario:', err);
+      const errorMessage = err.error?.message || err.statusText || 'Error desconocido';
+      this.presentToast('Error al crear usuario: ' + errorMessage, 'danger');
+    }
+  });
+}
 
   resetForm() {
     this.userForm.reset();
