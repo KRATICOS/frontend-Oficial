@@ -36,6 +36,9 @@ export class ServiceService {
     return this.http.post(`${environment.apiUrl}${environment.endpoints.usuario}/create`, data);
   }
 
+
+
+
   registerPublicUser(user: FormData): Observable<any> {
     return this.http.post(`${environment.apiUrl}${environment.endpoints.usuario}/create`, user);
   }
