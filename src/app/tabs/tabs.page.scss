@@ -1,0 +1,12 @@
+
+ion-tab-button {
+  ion-icon {
+    font-size: 30px; 
+    color: var(--ion-color-medium); // Color para iconos inactivos
+    transition: color 0.3s ease;
+  }
+
+  &.tab-selected ion-icon {
+    color: var(--ion-color-primary); // Color para el icono activo
+  }
+}

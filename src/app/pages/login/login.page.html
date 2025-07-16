@@ -1,0 +1,54 @@
+<ion-content class="login-background" [fullscreen]="true">
+  <div class="login-container">
+    <!-- Card de Formulario -->
+    <ion-card class="form-card">
+        <ion-card-header>
+          <div class="avatar-wrapper">
+            <ion-avatar class="profile-avatar">
+              <img src="assets/utvcoIMAGEN.jpg" alt="Logo UTVCO" />
+            </ion-avatar>
+          </div>
+
+          <div class="title-wrapper">
+            <ion-card-title class="titulo">Sistema de Gestión de Inventario</ion-card-title>
+            <ion-card-subtitle class="subtitulo">Inicio de Sesión</ion-card-subtitle>
+          </div>
+        </ion-card-header>
+
+      <ion-card-content>
+        <form (ngSubmit)="onLogin()" #loginForm="ngForm">
+          <ion-item lines="inset">
+            <ion-label position="floating">Correo institucional</ion-label>
+            <ion-input type="email" required [(ngModel)]="email" name="email"></ion-input>
+          </ion-item>
+
+          <ion-item lines="inset">
+            <ion-label position="floating">Contraseña</ion-label>
+            <ion-input [type]="passwordFieldType" required [(ngModel)]="password" name="password"></ion-input>
+            <ion-button fill="clear" slot="end" (click)="togglePasswordVisibility()">
+              <ion-icon [name]="showPassword ? 'eye-off-outline' : 'eye-outline'"></ion-icon>
+            </ion-button>
+          </ion-item>
+
+          <ion-button expand="block" shape="round" class="boton-login" color="primary" type="submit" [disabled]="!loginForm.form.valid">
+            Iniciar sesión
+          </ion-button>
+        </form>
+
+        <div class="register-wrapper">
+          <ion-text class="enlace-registro">
+            ¿No tienes cuenta?
+            <a [routerLink]="['/registro']">Regístrate aquí</a>
+          </ion-text>
+        </div>
+      </ion-card-content>
+    </ion-card>
+
+    <!-- Card de Carrusel -->
+    <ion-card class="image-card">
+      <div class="carousel">
+        <img [src]="carouselImages[currentImage]" alt="Material" class="carousel-image" />
+      </div>
+    </ion-card>
+  </div>
+</ion-content>

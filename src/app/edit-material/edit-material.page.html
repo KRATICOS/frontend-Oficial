@@ -1,0 +1,146 @@
+<ion-header>
+  <ion-toolbar color="primary">
+    <ion-buttons slot="start">
+      <ion-back-button defaultHref="/tabs-Admin/tab4"></ion-back-button>
+    </ion-buttons>
+
+    <ion-title>Actualizar equipo</ion-title>
+
+    <!-- botón de eliminar -->
+    <ion-buttons slot="end">
+      <ion-button color="danger" (click)="confirmarEliminacion()">
+        <ion-icon slot="icon-only" name="trash"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true" class="ion-padding">
+  <ion-grid fixed>
+    <ion-row class="ion-justify-content-center">
+      <ion-col size="12" size-md="10" size-lg="8">
+
+        <!-- Card principal -->
+        <ion-card class="register-card animate-fade">
+          <ion-card-header>
+            <ion-card-title class="ion-text-center">Actualizar equipo</ion-card-title>
+
+            <!-- Carrusel (solo si hay imágenes) -->
+            <swiper-container
+              class="custom-swiper"
+              slides-per-view="1"
+              space-between="10"
+              navigation="true"
+              pagination="true"
+              *ngIf="imagenesPreview.length"
+            >
+              <swiper-slide *ngFor="let img of imagenesPreview; let i = index">
+                <div class="slide-wrapper">
+                  <img [src]="img" class="slide-image" />
+                  <ion-icon name="close-circle" class="delete-icon" (click)="removeImage(i)"></ion-icon>
+                </div>
+              </swiper-slide>
+            </swiper-container>
+
+            <!-- Botón para añadir imagen -->
+            <ion-button size="small" expand="block" fill="outline" class="add-img-btn" (click)="abrirSelector()">
+              <ion-icon name="add" slot="start"></ion-icon>
+              Añadir imagen
+              <span class="count-badge" *ngIf="imagenesPreview.length">
+                {{ imagenesPreview.length }}/5
+              </span>
+            </ion-button>
+
+            <!-- input hidden real -->
+            <input id="fileInput" type="file" accept="image/*" multiple hidden (change)="onFileSelected($event)" />
+          </ion-card-header>
+
+          <!-- Formulario reactivo -->
+          <ion-card-content>
+            <form [formGroup]="equipoForm" (ngSubmit)="actualizarEquipo()" novalidate>
+              <ion-list lines="full" class="form-list">
+
+                <ion-item [class.ion-invalid]="equipoForm.get('name')?.invalid && equipoForm.get('name')?.touched">
+                  <ion-icon name="cube" slot="start"></ion-icon>
+                  <ion-input
+                    placeholder="Nombre del equipo"
+                    formControlName="name"
+                    required
+                  ></ion-input>
+                </ion-item>
+
+                <ion-item [class.ion-invalid]="equipoForm.get('model')?.invalid && equipoForm.get('model')?.touched">
+                  <ion-icon name="pricetag" slot="start"></ion-icon>
+                  <ion-input
+                    placeholder="Modelo"
+                    formControlName="model"
+                    required
+                  ></ion-input>
+                </ion-item>
+
+                <ion-item [class.ion-invalid]="equipoForm.get('description')?.invalid && equipoForm.get('description')?.touched">
+                  <ion-icon name="reader" slot="start"></ion-icon>
+                  <ion-textarea
+                    autoGrow="true"
+                    placeholder="Descripción"
+                    formControlName="description"
+                    required
+                  ></ion-textarea>
+                </ion-item>
+
+                <ion-item [class.ion-invalid]="equipoForm.get('categoria')?.invalid && equipoForm.get('categoria')?.touched">
+                  <ion-icon name="albums" slot="start"></ion-icon>
+                  <ion-select
+                    placeholder="Categoría"
+                    formControlName="categoria"
+                    interface="popover"
+                    required
+                  >
+                    <ion-select-option *ngFor="let cat of categorias" [value]="cat">
+                      {{ cat }}
+                    </ion-select-option>
+                  </ion-select>
+                </ion-item>
+
+                <ion-item [class.ion-invalid]="equipoForm.get('nseries')?.invalid && equipoForm.get('nseries')?.touched">
+                  <ion-icon name="barcode" slot="start"></ion-icon>
+                  <ion-input
+                    placeholder="Número de serie"
+                    formControlName="nseries"
+                    required
+                  ></ion-input>
+                </ion-item>
+
+                <!-- Chips de estado -->
+                <div class="estado-wrapper ion-margin-top">
+                  <ion-label class="estado-label"><strong>Estado</strong></ion-label>
+                  <div class="estado-chips">
+                    <ion-chip outline (click)="cambiarEstado('Disponible')" [color]="equipoForm.value.estado === 'Disponible' ? 'success' : ''">
+                      <ion-icon name="checkmark-circle"></ion-icon>
+                      <ion-label>Disponible</ion-label>
+                    </ion-chip>
+
+                    <ion-chip outline (click)="cambiarEstado('Ocupado')" [color]="equipoForm.value.estado === 'Ocupado' ? 'warning' : ''">
+                      <ion-icon name="close-circle"></ion-icon>
+                      <ion-label>Ocupado</ion-label>
+                    </ion-chip>
+
+                    <ion-chip outline (click)="cambiarEstado('En Mantenimiento')" [color]="equipoForm.value.estado === 'En Mantenimiento' ? 'danger' : ''">
+                      <ion-icon name="construct"></ion-icon>
+                      <ion-label>Mantenimiento</ion-label>
+                    </ion-chip>
+                  </div>
+                </div>
+
+                <ion-button expand="block" color="primary" class="ion-margin-top" type="submit" [disabled]="equipoForm.invalid">
+                  Actualizar equipo
+                </ion-button>
+              </ion-list>
+            </form>
+          </ion-card-content>
+        </ion-card>
+
+      </ion-col>
+    </ion-row>
+  </ion-grid>
+</ion-content>

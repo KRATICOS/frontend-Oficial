@@ -1,0 +1,98 @@
+<ion-header>
+  <ion-toolbar color="primary">
+    <ion-title>Material en Uso</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="ion-padding">
+
+  <!-- Tabla de registros -->
+  <ion-grid>
+    <ion-row class="table-header ion-text-center">
+      <ion-col size="3"><strong>Código</strong></ion-col>
+      <ion-col size="4"><strong>Fecha y Hora</strong></ion-col>
+      <ion-col size="3"><strong>Estatus</strong></ion-col>
+      <ion-col size="2"><strong>Acción</strong></ion-col>
+    </ion-row>
+
+    <ion-row *ngFor="let registro of registros" class="table-row ion-text-center">
+      <ion-col size="3">{{ getCodigo(registro) }}</ion-col>
+      <ion-col size="4">{{ registro.fechaPrestamo | date:'short' }} {{ registro.horaSolicitud }}</ion-col>
+      <ion-col size="3">{{ registro.estado }}</ion-col>
+      <ion-col size="2">
+        <ion-button fill="outline" size="small" color="primary" (click)="verDetalles(registro)">
+          Ver detalles
+        </ion-button>
+      </ion-col>
+    </ion-row>
+  </ion-grid>
+
+  <!-- Modal de detalles -->
+  <ion-modal id="detalleModal">
+    <ng-template>
+      <ion-content class="ion-padding">
+        <ion-button expand="block" color="danger" (click)="cerrarModal()">Cerrar</ion-button>
+        <h2 class="ion-text-center ion-margin-top">Detalles del Préstamo</h2>
+
+        <ion-list>
+          <ion-item>
+            <ion-label>
+              <strong>Nombre del usuario:</strong><br>
+              {{ selectedUsuario?.name || 'No disponible' }}
+            </ion-label>
+          </ion-item>
+          <ion-item>
+            <ion-label>
+              <strong>Correo:</strong><br>
+              {{ selectedUsuario?.email || 'No disponible' }}
+            </ion-label>
+          </ion-item>
+          <ion-item>
+            <ion-label>
+              <strong>Matrícula:</strong><br>
+              {{ selectedUsuario?.matricula || 'No disponible' }}
+            </ion-label>
+          </ion-item>
+          <ion-item>
+            <ion-label>
+              <strong>Grupo:</strong><br>
+              {{ selectedUsuario?.grupo || 'No disponible' }}
+            </ion-label>
+          </ion-item>
+
+          <ion-item>
+            <ion-label>
+              <strong>Nombre del material:</strong><br>
+              {{ selectedInventario?.name || 'No disponible' }}
+            </ion-label>
+          </ion-item>
+          <ion-item>
+            <ion-label>
+              <strong>Modelo:</strong><br>
+              {{ selectedInventario?.model || 'No disponible' }}
+            </ion-label>
+          </ion-item>
+          <ion-item>
+            <ion-label>
+              <strong>Fecha y hora del préstamo:</strong><br>
+              {{ selectedRegistro?.fechaPrestamo | date:'fullDate' }} - {{ selectedRegistro?.horaSolicitud }}
+            </ion-label>
+          </ion-item>
+
+          <ion-item>
+            <ion-label>
+              <strong>Fecha y hora de devolucion:</strong><br>
+              {{ selectedRegistro?.fechaDevolucion | date:'fullDate' }} - {{ selectedRegistro?.horaSolicitud }}
+            </ion-label>
+          </ion-item>
+          <ion-item *ngIf="selectedRegistro?.observaciones">
+            <ion-label>
+              <strong>Observaciones:</strong><br>
+              {{ selectedRegistro?.observaciones }}
+            </ion-label>
+          </ion-item>
+        </ion-list>
+      </ion-content>
+    </ng-template>
+  </ion-modal>
+</ion-content>

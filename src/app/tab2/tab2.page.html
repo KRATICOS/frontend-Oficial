@@ -1,0 +1,97 @@
+<ion-content [fullscreen]="true">
+  <ion-item lines="none">
+    <ion-label>Estado</ion-label>
+    <ion-select
+      name="estado"
+      [(ngModel)]="estadoSeleccionado"
+      (ionChange)="filtrarPorEstado($event.detail.value)"
+      interface="popover"
+      slot="end"
+      placeholder="Filtrar"
+      class="custom-select"
+    >
+      <ion-select-option value="">Todos</ion-select-option>
+      <ion-select-option value="Disponible">Disponible</ion-select-option>
+      <ion-select-option value="Ocupado">Ocupado</ion-select-option>
+      <ion-select-option value="En Mantenimiento">En Mantenimiento</ion-select-option>
+    </ion-select>
+    <ion-icon name="filter" slot="end" class="filter-icon" style="margin-left: 8px;"></ion-icon>
+  </ion-item>
+
+  <ion-grid fixed>
+    <ion-row class="ion-justify-content-center ion-padding-bottom">
+      <ion-col
+        *ngFor="let equipo of equipos"
+        size="12"
+        size-md="6"
+        size-lg="4"
+        class="animate-fade"
+      >
+        <ion-card class="equipment-card">
+          <div class="image-container">
+            <ion-img
+              *ngIf="equipo.imagenes?.length"
+              [src]="equipo.imagenes[0]?.url"
+              alt="Imagen del equipo"
+              class="equipment-image"
+            ></ion-img>
+
+            <ion-badge
+              [color]="
+                equipo.estado === 'Disponible'
+                  ? 'success'
+                  : equipo.estado === 'Ocupado'
+                  ? 'warning'
+                  : 'danger'
+              "
+              class="state-badge"
+            >
+              {{ equipo.estado }}
+            </ion-badge>
+          </div>
+
+          <ion-card-header>
+            <ion-card-title>{{ equipo.name }}</ion-card-title>
+            <ion-card-subtitle>Categoría: {{ equipo.categoria }}</ion-card-subtitle>
+          </ion-card-header>
+
+          <ion-card-content>
+            <p class="description">
+              <strong>Descripción:</strong> {{ equipo.description }}
+            </p>
+
+            <p class="model">
+              <strong>Modelo:</strong> {{ equipo.model }}
+            </p>
+
+            <p class="serie">
+              <strong>Numero de serie:</strong> {{ equipo.nseries }}
+            </p>
+
+            <div *ngIf="equipo.codigoQR" class="mt-3 ion-text-center">
+              <ion-text color="medium">
+                <strong>Código QR</strong>
+              </ion-text>
+              <ion-img
+                [src]="equipo.codigoQR"
+                alt="QR del equipo"
+                class="qr-image" 
+                style="width: 100px; height: 100px; margin: 0 auto;"
+              ></ion-img>
+            </div>
+
+            <ion-button
+              expand="block"
+              fill="solid"
+              shape="round"
+              (click)="verDetalles(equipo._id)"
+              class="details-button"
+            >
+              Reservar
+            </ion-button>
+          </ion-card-content>
+        </ion-card>
+      </ion-col>
+    </ion-row>
+  </ion-grid>
+</ion-content>

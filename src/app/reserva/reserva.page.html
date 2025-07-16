@@ -1,0 +1,115 @@
+<ion-header>
+  <ion-toolbar color="primary">
+    <ion-buttons slot="start">
+      <ion-back-button defaultHref="/tabs/tab2"></ion-back-button>
+    </ion-buttons>
+    <ion-title>Detalles del Equipo</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="ion-padding">
+
+  <!-- Si el equipo está cargado -->
+  <div *ngIf="equipo; else cargando">
+
+
+    <!-- Detalles del equipo -->
+    <ion-card>
+          <ion-card class="imagenes-card" *ngIf="equipo?.imagenes?.length">
+      <ion-card-header>
+        <ion-card-title class="ion-text-center">Galería</ion-card-title>
+      </ion-card-header>
+      <ion-card-content>
+        <div class="mosaic-grid">
+          <div *ngFor="let img of equipo.imagenes" class="mosaic-item">
+            <img [src]="img.url" alt="Imagen del equipo" class="mosaic-image" />
+          </div>
+        </div>
+      </ion-card-content>
+    </ion-card>
+      <ion-card-header>
+        <ion-card-title>{{ equipo.name }}</ion-card-title>
+        <ion-card-subtitle>{{ equipo.categoria }}</ion-card-subtitle>
+      </ion-card-header>
+      <ion-card-content>
+        <p><strong>Descripción:</strong> {{ equipo.description }}</p>
+        <p>
+          <strong>Estado:</strong>
+          <ion-badge [color]="getEstadoColor(equipo.estado)">
+            {{ equipo.estado }}
+          </ion-badge>
+        </p>
+        <p *ngIf="equipo.numero_serie"><strong>Número de Serie:</strong> {{ equipo.numero_serie }}</p>
+      </ion-card-content>
+    </ion-card>
+
+    <!-- Sección de reserva por horario -->
+    <ion-card>
+      <ion-card-header>
+        <ion-card-title>Selecciona el horario</ion-card-title>
+        <ion-card-subtitle>Horas disponibles: 8:00 - 20:00</ion-card-subtitle>
+      </ion-card-header>
+
+      <ion-card-content>
+        <div class="time-grid">
+          <ion-chip *ngFor="let hour of availableHours"
+                    (click)="toggleHourSelection(hour)"
+                    [color]="getHourColor(hour)">
+            {{ hour }}:00
+            <ion-icon *ngIf="isHourBooked(hour) || isHourApproved(hour)" name="alert-circle" slot="end"></ion-icon>
+          </ion-chip>
+        </div>
+
+        <!-- Rango seleccionado -->
+        <ion-item lines="none" *ngIf="selectedHours.length > 0">
+          <ion-label>
+            <h2>Rango seleccionado</h2>
+            <p>{{ getSelectedHoursText() }}</p>
+            <p *ngIf="hasBookedHours" class="warning-text">
+              <ion-icon name="warning"></ion-icon>
+              Algunas horas seleccionadas ya están reservadas
+            </p>
+            <p *ngIf="hasApprovedHours" class="warning-text">
+              <ion-icon name="warning"></ion-icon>
+              Algunas horas seleccionadas ya están aprobadas para otros usuarios
+            </p>
+          </ion-label>
+        </ion-item>
+      </ion-card-content>
+    </ion-card>
+
+    <!-- Observaciones -->
+    <ion-card>
+      <ion-card-header>
+        <ion-card-title>Observaciones (opcional)</ion-card-title>
+      </ion-card-header>
+      <ion-card-content>
+        <ion-item>
+          <ion-textarea [(ngModel)]="observaciones" placeholder="Escribe aquí..."></ion-textarea>
+        </ion-item>
+      </ion-card-content>
+    </ion-card>
+
+    <!-- Botones -->
+    <div class="action-buttons">
+      <ion-button expand="block" shape="round"
+                  [disabled]="!canReserve"
+                  (click)="registrarPrestamo()">
+        <ion-icon name="checkmark-circle" slot="start"></ion-icon>
+        Confirmar Reserva
+      </ion-button>
+
+      <ion-button expand="block" fill="clear" color="medium" (click)="limpiarSeleccion()">
+        Limpiar selección
+      </ion-button>
+    </div>
+  </div>
+
+  <!-- Spinner de carga -->
+  <ng-template #cargando>
+    <div class="loading-container">
+      <ion-spinner name="crescent"></ion-spinner>
+      <p>Cargando detalles del equipo...</p>
+    </div>
+  </ng-template>
+</ion-content>

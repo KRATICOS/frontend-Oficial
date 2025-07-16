@@ -1,0 +1,60 @@
+<ion-header>
+  <ion-toolbar color="primary">
+    <ion-title class="ion-text-center">Uso de Material</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="ion-padding" [fullscreen]="true" [scrollY]="!mostrarScanner">
+
+  <div class="options-container animate__animated animate__fadeInUp">
+    <ion-card class="option-card" (click)="modoEscaneo()">
+      <div class="card-icon">
+        <ion-icon name="qr-code" color="success"></ion-icon>
+      </div>
+      <ion-card-header>
+        <ion-card-title>Escanear QR</ion-card-title>
+      </ion-card-header>
+      <ion-card-content>
+        Usa la cámara para escanear el código QR del material
+      </ion-card-content>
+      <div class="card-wave"></div>
+    </ion-card>
+
+    <ion-card class="option-card" (click)="modoManual()">
+      <div class="card-icon">
+        <ion-icon name="keypad" color="tertiary"></ion-icon>
+      </div>
+      <ion-card-header>
+        <ion-card-title>Ingresar Manualmente</ion-card-title>
+      </ion-card-header>
+      <ion-card-content>
+        Introduce el número de serie del material
+      </ion-card-content>
+      <div class="card-wave"></div>
+    </ion-card>
+  </div>
+
+  <div *ngIf="mostrarScanner" class="scanner-container animate__animated animate__zoomIn">
+    <div class="scanner-overlay">
+      <div class="scanner-frame"></div>
+      <p class="scanner-hint">Apunta al código QR dentro del marco</p>
+    </div>
+    <zxing-scanner (scanSuccess)="procesarCodigo($event)" class="scanner"></zxing-scanner>
+    <ion-button expand="block" color="danger" (click)="cerrarScanner()" class="animate__animated animate__fadeIn">
+      <ion-icon name="close-circle" slot="start"></ion-icon>
+      Cerrar Cámara
+    </ion-button>
+  </div>
+
+  <div *ngIf="mostrarInput" class="manual-input animate__animated animate__fadeIn">
+    <ion-item class="input-item">
+      <ion-label position="floating">Número de Serie</ion-label>
+      <ion-input [(ngModel)]="Id" type="text" clearInput></ion-input>
+    </ion-item>
+    <ion-button expand="block" color="primary" (click)="buscarPorNumero()" class="search-button">
+      <ion-icon name="search" slot="start"></ion-icon>
+      Buscar Material
+    </ion-button>
+  </div>
+
+</ion-content>

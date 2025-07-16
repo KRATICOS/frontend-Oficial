@@ -1,0 +1,151 @@
+/* ======================== */
+/* Animación de aparición */
+/* ======================== */
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade {
+  animation: fade-in 350ms ease-out both;
+}
+
+/* ======================== */
+/* Card general */
+/* ======================== */
+.register-card {
+  border-radius: 1rem;
+  box-shadow: 0 4px 16px rgb(0 0 0 / 10%);
+  overflow: hidden;
+}
+
+/* ======================== */
+/* Swiper carrusel */
+/* ======================== */
+.custom-swiper {
+  width: 100%;
+  height: 200px;
+  margin: 12px 0;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+/* Slide con imagen + botón eliminar */
+.slide-wrapper {
+  position: relative;
+  width: 100%;
+  height: 250px;
+  overflow: hidden;
+  border-radius: 12px;
+}
+
+.slide-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 12px;
+  display: block;
+}
+
+/* ======================== */
+/* Icono de eliminar dentro del slide */
+/* ======================== */
+.delete-icon {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  font-size: 28px;
+  color: var(--ion-color-danger);
+  z-index: 10;
+  cursor: pointer;
+  background-color: rgb(188, 0, 0);
+  border-radius: 50%;
+  padding: 2px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+  transition: transform 0.15s ease-in-out;
+}
+
+.delete-icon:active {
+  transform: scale(0.9);
+}
+
+/* ======================== */
+/* Botón para añadir imagen */
+/* ======================== */
+.add-img-btn {
+  margin-bottom: 8px;
+  position: relative;
+
+  .count-badge {
+    margin-left: 6px;
+    font-weight: 600;
+  }
+}
+
+/* ======================== */
+/* Estado: Diseño de los chips */
+/* ======================== */
+.estado-wrapper {
+  margin-top: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* Etiqueta "Estado" */
+.estado-label {
+  font-size: 16px;
+  margin-bottom: 4px;
+}
+
+/* Contenedor de los chips */
+.estado-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+
+  ion-chip {
+    --background: transparent;
+  }
+}
+
+/* ======================== */
+/* Modo responsivo para móviles */
+/* ======================== */
+@media screen and (max-width: 600px) {
+  .estado-wrapper {
+    gap: 2px;
+  }
+
+  .estado-label {
+    font-size: 15px;
+  }
+
+  .estado-chips {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .custom-swiper {
+    height: 180px;
+  }
+
+  .slide-wrapper {
+    height: 180px;
+  }
+}
+
+/* ======================== */
+/* Modo oscuro */
+/* ======================== */
+@media (prefers-color-scheme: dark) {
+  .register-card {
+    background: var(--ion-color-step-100);
+  }
+}

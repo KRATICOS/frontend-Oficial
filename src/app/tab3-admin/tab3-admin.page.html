@@ -1,0 +1,131 @@
+<ion-content class="ion-padding">
+
+  <!-- Filtro por estado -->
+  <ion-item lines="none">
+    <ion-label>Estado</ion-label>
+    <ion-select
+      name="estado"
+      [(ngModel)]="estadoSeleccionado"
+      (ionChange)="filtrarPorEstado($event.detail.value)"
+      interface="popover"
+      slot="end"
+      placeholder="Filtrar"
+      class="custom-select"
+    >
+      <ion-select-option value="">Todos</ion-select-option>
+      <ion-select-option value="Disponible">Disponible</ion-select-option>
+      <ion-select-option value="Ocupado">Ocupado</ion-select-option>
+      <ion-select-option value="En Mantenimiento">En Mantenimiento</ion-select-option>
+    </ion-select>
+    <ion-icon name="filter" slot="end" class="filter-icon" style="margin-left: 8px;"></ion-icon>
+  </ion-item>
+
+  <!-- Buscador -->
+  <ion-searchbar
+    [(ngModel)]="searchTerm" 
+    (ionInput)="filtrarEquipos()"
+    (keyup.enter)="filtrarEquipos()"
+    placeholder="Buscar por palabra clave"
+  ></ion-searchbar>
+
+  <!-- Grid de equipos -->
+  <ion-grid>
+    <ion-row>
+      <ion-col size="12" size-md="6" size-lg="4" *ngFor="let equipo of equipos">
+        <ion-card class="ion-no-margin ion-no-padding">
+
+          <!-- Botón de eliminar -->
+          <ion-button 
+            fill="clear" 
+            color="danger" 
+            size="small" 
+            style="position: absolute; top: 8px; left: 8px; z-index: 10;" 
+            (click)="eliminarEquipo(equipo._id)"
+          >
+            <ion-icon slot="icon-only" name="trash-outline" style="font-size: 24px;"></ion-icon>
+          </ion-button>
+
+          <!-- Imagen del equipo -->
+          <div class="image-container">
+            <ion-img
+              *ngIf="equipo.imagenes?.length"
+              [src]="equipo.imagenes[0]?.url"
+              alt="Imagen del equipo"
+              class="equipment-image"
+            ></ion-img>
+
+            <!-- Estado -->
+            <ion-badge
+              [color]="
+                equipo.estado === 'Disponible'
+                  ? 'success'
+                  : equipo.estado === 'Ocupado'
+                  ? 'warning'
+                  : 'danger'
+              "
+              class="state-badge"
+            >
+              {{ equipo.estado }}
+            </ion-badge>
+          </div>
+
+          <!-- Encabezado del card -->
+          <ion-card-header>
+            <ion-card-title>{{ equipo.name }} ({{ equipo.model }})</ion-card-title>
+            <ion-card-subtitle>Categoría: {{ equipo.categoria }}</ion-card-subtitle>
+          </ion-card-header>
+
+          <!-- Contenido -->
+          <ion-card-content>
+            <p class="description">
+              <strong>Descripción:</strong> {{ equipo.description }}
+            </p>
+
+            <p class="model">
+              <strong>Modelo:</strong> {{ equipo.model }}
+            </p>
+
+            <ion-item lines="none">
+              <ion-label>
+                <strong>N.º de serie</strong>
+              </ion-label>
+              <ion-text>{{ equipo.nseries }}</ion-text>
+            </ion-item>
+
+            <!-- Código QR -->
+            <div *ngIf="equipo.codigoQR" class="mt-3 ion-text-center">
+              <ion-text color="medium">
+                <strong>Código QR</strong>
+              </ion-text>
+              <ion-img
+                [src]="equipo.codigoQR"
+                alt="QR del equipo"
+                class="qr-image" 
+                style="width: 100px; height: 100px; margin: 0 auto;"
+              ></ion-img>
+
+                <ion-button 
+                  expand="block" 
+                  fill="outline" 
+                  color="secondary" 
+                  (click)="imprimirQR(equipo.codigoQR)">
+                  Imprimir QR
+                </ion-button>
+            </div>
+
+            <!-- Botón Editar -->
+            <ion-button fill="clear" color="medium" (click)="editarMaterial(equipo._id)">
+              <ion-icon slot="start" name="create-outline"></ion-icon>
+              Editar
+            </ion-button>
+
+            <!-- Botón Ver Detalles -->
+            <ion-button expand="block" color="primary" (click)="verDetalles(equipo)">
+              Ver Detalles
+            </ion-button>
+          </ion-card-content>
+        </ion-card>
+      </ion-col>
+    </ion-row>
+  </ion-grid>
+</ion-content>
