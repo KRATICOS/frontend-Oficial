@@ -118,7 +118,7 @@ export class InventarioService {
   }
 
   getEquiposId(id: string) {
-    return this.http.get(`http://localhost:3001/api/inventario/${id}`);
+    return this.http.get(`https://backend-oficial-env.up.railway.app/api/inventario/${id}`);
   }
 
   eliminarEquipo(id: string): Observable<void> {
