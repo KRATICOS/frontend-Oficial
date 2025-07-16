@@ -107,8 +107,15 @@ export class RegistroPage {
     formData.append('grupo', this.userForm.value.grupo);
     formData.append('rol', 'user'); // siempre user por defecto
 
-    this.selectedFiles.forEach(file => {
-      formData.append('files', file);
+    if (this.selectedFiles.length > 0) {
+      this.selectedFiles.forEach(file => {
+        formData.append('files', file);
+      });
+    }
+
+    // Debug: mostrar contenido de FormData
+    formData.forEach((value, key) => {
+      console.log(`FormData key=${key} value=`, value);
     });
 
     this.userService.createUser(formData).subscribe({
@@ -142,4 +149,3 @@ export class RegistroPage {
     toast.present();
   }
 }
-
