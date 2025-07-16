@@ -7,7 +7,6 @@
 <ion-content class="ion-padding">
   <ion-card class="register-card">
     <form [formGroup]="userForm" (ngSubmit)="onSubmit()">
-
       <ion-card-header class="avatar-container">
         <div class="avatar-wrapper">
           <ion-avatar class="profile-avatar">
@@ -42,13 +41,12 @@
         <ion-input type="tel" formControlName="tel"></ion-input>
       </ion-item>
 
-
-      <ion-item *ngIf="userForm.get('rol')?.value === 'user'">
+      <ion-item>
         <ion-label position="floating">Matrícula</ion-label>
         <ion-input formControlName="matricula"></ion-input>
       </ion-item>
 
-      <ion-item *ngIf="userForm.get('rol')?.value === 'user'">
+      <ion-item>
         <ion-label position="floating">Grupo</ion-label>
         <ion-input formControlName="grupo"></ion-input>
       </ion-item>
@@ -57,11 +55,11 @@
         <ion-button expand="block" color="primary" type="submit" [disabled]="userForm.invalid">
           Crear Usuario
         </ion-button>
-        <ion-button expand="block" color="medium" type="button" (click)="userForm.reset(); selectedFiles=[];">
+        <ion-button expand="block" color="medium" type="button" (click)="resetForm()">
           Cancelar
         </ion-button>
       </div>
-
     </form>
   </ion-card>
 </ion-content>
+
