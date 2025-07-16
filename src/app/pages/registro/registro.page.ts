@@ -72,16 +72,24 @@ export class RegistroPage {
   }
 
   onFileSelected(event: any) {
+  if (event.target.files && event.target.files.length > 0) {
     this.selectedFiles = Array.from(event.target.files);
 
+    // Mostrar previsualización de la primera imagen seleccionada
+    const firstFile = this.selectedFiles[0];
     const reader = new FileReader();
+
     reader.onload = () => {
       this.imagePreview = reader.result;
     };
-    if (this.selectedFiles.length > 0) {
-      reader.readAsDataURL(this.selectedFiles[0]);
-    }
+
+    reader.readAsDataURL(firstFile);
+  } else {
+    this.selectedFiles = [];
+    this.imagePreview = null;
   }
+}
+
 
  async onSubmit() {
   console.log('Form validity:', this.userForm.valid);
