@@ -4,9 +4,8 @@ import { roleGuard } from './guards/role.guard';
 export const routes: Routes = [
   {
     path: '',
-    loadChildren: () => import('./tabs/tabs.routes').then(m => m.routes),
-    canActivate: [roleGuard],
-    data: { roles: ['user', 'admin'] }
+    redirectTo: 'login',
+    pathMatch: 'full'
   },
   {
     path: 'login',
@@ -15,6 +14,12 @@ export const routes: Routes = [
   {
     path: 'registro',
     loadComponent: () => import('./pages/registro/registro.page').then(m => m.RegistroPage)
+  },
+  {
+    path: 'tabs',
+    loadChildren: () => import('./tabs/tabs.routes').then(m => m.routes),
+    canActivate: [roleGuard],
+    data: { roles: ['user'] }
   },
   {
     path: 'tabs-Admin',
@@ -44,6 +49,7 @@ export const routes: Routes = [
   },
   {
     path: 'no-autorizado',
-    loadComponent: () => import('./pages/no-autorizado/no-autorizado.page').then( m => m.NoAutorizadoPage)
+    loadComponent: () => import('./pages/no-autorizado/no-autorizado.page').then(m => m.NoAutorizadoPage)
   }
 ];
+
