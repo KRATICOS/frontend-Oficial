@@ -1,5 +1,5 @@
 import { Component, inject } from '@angular/core';
-import { IonHeader,IonThumbnail, IonToolbar, IonTitle, IonContent, IonCardHeader, IonCardTitle, IonCardContent, IonCard, IonButton, IonAvatar, IonLabel, IonItem, IonListHeader, IonList, IonCardSubtitle, IonButtons, IonIcon, IonBadge } from '@ionic/angular/standalone';
+import { IonHeader, IonThumbnail, IonToolbar, IonTitle, IonContent, IonCardHeader, IonCardTitle, IonCardContent, IonCard, IonButton, IonAvatar, IonLabel, IonItem, IonListHeader, IonList, IonCardSubtitle, IonButtons, IonIcon, IonBadge } from '@ionic/angular/standalone';
 import { ExploreContainerComponent } from '../explore-container/explore-container.component';
 import { ServiceService } from '../services/service.service';
 import { FormsModule } from '@angular/forms';
@@ -33,8 +33,8 @@ addIcons({
   closeCircle,
   construct,
   notificationsOutline,
-    callOutline,
-    mailOutline,
+  callOutline,
+  mailOutline,
   idCardOutline,
   peopleOutline,
   personOutline,
@@ -48,59 +48,53 @@ addIcons({
   selector: 'app-tab3',
   templateUrl: 'tab3.page.html',
   styleUrls: ['tab3.page.scss'],
-  imports: [IonBadge, IonIcon, IonButtons,  IonButton, IonCard, IonCardContent, IonCardTitle, IonCardHeader, IonHeader, IonToolbar, IonTitle, IonContent, FormsModule, CommonModule, IonAvatar,IonCardSubtitle],
+  imports: [IonBadge, IonIcon, IonButtons, IonButton, IonCard, IonCardContent, IonCardTitle, IonCardHeader, IonHeader, IonToolbar, IonTitle, IonContent, FormsModule, CommonModule, IonAvatar, IonCardSubtitle],
 })
 export class Tab3Page {
   usuario: any;
-    notificaciones: NotificacionReserva[] = [];
+  notificaciones: NotificacionReserva[] = [];
   mostrarNotificaciones = false;
 
   constructor() { }
 
   private _serviceServices = inject(ServiceService);
   private router = inject(Router);
-    private notificationService = inject(NotificationService);
-    private _historialService = inject(HistorialService);
-    private _router = inject(Router);
-    private modalCtrl = inject(ModalController);
+  private notificationService = inject(NotificationService);
+  private _historialService = inject(HistorialService);
+  private _router = inject(Router);
+  private modalCtrl = inject(ModalController);
 
-   getImagenPerfil(usuario: any): string {
-  if (
-    usuario.imagenes &&
-    Array.isArray(usuario.imagenes) &&
-    usuario.imagenes.length > 0 &&
-    usuario.imagenes[0].url
-  ) {
-    const imagen = usuario.imagenes[0].url;
+  getImagenPerfil(usuario: any): string {
+    const imagen = usuario?.imagenes?.[0]?.url;
 
-    if (imagen.startsWith('http')) {
-      return imagen;
+    if (imagen) {
+      if (imagen.startsWith('http')) {
+        return imagen;
+      }
+
+      return `https://gmflswlxghleuauuieis.supabase.co/storage/v1/object/public/inventario/${imagen}`;
     }
 
-    return `http://localhost:3001/${imagen}`;
+    return 'assets/utvcoIMAGEN.jpg';
   }
 
-  return 'assets/utvcoIMAGEN.jpg'; 
-}
+  async abrirModalNotificaciones() {
+    const modal = await this.modalCtrl.create({
+      component: NotificacionesUserComponent,
+      componentProps: {
+        notificaciones: this.notificaciones
+      },
+      breakpoints: [0, 0.5, 0.8],
+      initialBreakpoint: 0.8
+    });
 
-    async abrirModalNotificaciones() {
-      const modal = await this.modalCtrl.create({
-        component: NotificacionesUserComponent,
-        componentProps: {
-          notificaciones: this.notificaciones
-        },
-        breakpoints: [0, 0.5, 0.8],
-        initialBreakpoint: 0.8
-      });
-      
-      modal.onDidDismiss().then((data) => {
-        if (data?.data) {
-          // Manejar datos devueltos del modal si es necesario
-        }
-      });
-  
-      await modal.present();
-    }
+    modal.onDidDismiss().then((data) => {
+      if (data?.data) {
+      }
+    });
+
+    await modal.present();
+  }
 
   ngOnInit() {
 
@@ -110,7 +104,7 @@ export class Tab3Page {
       this.usuario = JSON.parse(usuarioGuardado);
     } else {
       console.warn('No se encontró información del usuario en localStorage.');
-      this.usuario = { nombre: '', correo: '', imagenes:[]};
+      this.usuario = { nombre: '', correo: '', imagenes: [] };
     }
   }
 

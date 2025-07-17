@@ -7,7 +7,7 @@ import {
 } from '@ionic/angular/standalone';
 import { ToastController } from '@ionic/angular';
 import { ActivatedRoute, Router } from '@angular/router';
-import { interval, lastValueFrom, Subscription,forkJoin, of } from 'rxjs';
+import { interval, lastValueFrom, Subscription, forkJoin, of } from 'rxjs';
 import { switchMap } from 'rxjs/operators';
 
 import { InventarioService } from '../services/inventario.service';
@@ -58,120 +58,94 @@ export class ReservaPage implements OnInit, OnDestroy {
     this.refreshSubscription?.unsubscribe();
   }
 
-  private setupPage() {
-  this.obtenerEquipo(this.ID!);
-  this.iniciarMonitorEstado();
-  this.generateAvailableHours();
-  
-  // Escuchar eventos de cambios
-  this.notificationService.obtenerCambiosObservable().subscribe(() => {
-    this.actualizarDatos();
-  });
-}
-
-private async initializePage() {
-  try {
-    // 🔹 Evitar el bloqueo por focus residual al cambiar de interfaz
-    if (document.activeElement instanceof HTMLElement) {
-      document.activeElement.blur();
-    }
-
-    this.currentUser = JSON.parse(localStorage.getItem('User') || 'null');
-    if (!this.currentUser) {
-      await this.showToast('Debe iniciar sesión', 'danger');
-      if (document.activeElement instanceof HTMLElement) {
-        document.activeElement.blur();
-      }
-      this.router.navigate(['/tabs/tab1']);
-      return;
-    }
-
-    this.route.queryParams.subscribe(params => {
-      this.ID = params['id'];
-      if (!this.ID) {
-        this.handleMissingId();
+  private async initializePage() {
+    try {
+      this.currentUser = JSON.parse(localStorage.getItem('User') || 'null');
+      if (!this.currentUser) {
+        await this.showToast('Debe iniciar sesión', 'danger');
+        this.router.navigate(['/tabs/tab1']);
         return;
       }
-      console.log('Equipo seleccionado:', this.ID);
-      this.setupPage(); // ⚡ Corregido: se llama aquí tras confirmar ID
-    });
-  } catch (error) {
-    console.error('Error inicializando página:', error);
-    this.showToast('Error al cargar la página', 'danger');
-  }
-}
 
-private handleMissingId() {
-  console.error('ID no proporcionado');
-  this.showToast('Equipo no especificado', 'danger');
-
-  if (document.activeElement instanceof HTMLElement) {
-    document.activeElement.blur();
-  }
-  this.router.navigate(['/tabs/tab1']);
-}
-
-
-private iniciarMonitorEstado(): void {
-  this.refreshSubscription = interval(5000).pipe(
-    switchMap(() => this.inventarioService.EquiposId(this.ID!)),
-    switchMap((equipo: any) => {
-      this.equipo = equipo;
-      return forkJoin([
-        this.historialService.obtenerHistorial(),
-        of(this.notificationService.notificacionesActuales)
-      ]);
-    })
-  ).subscribe({
-    next: ([historial, notificaciones]) => {
-      this.actualizarHorasOcupadas(historial, notificaciones);
-    },
-    error: (err: any) => console.error('Error monitoreando estado:', err)
-  });
-}
-
-
-private actualizarDatos(): void {
-  forkJoin([
-    this.inventarioService.EquiposId(this.ID!),
-    this.historialService.obtenerHistorial()
-  ]).subscribe({
-    next: ([equipo, historial]) => {
-      this.equipo = equipo;
-      this.actualizarHorasOcupadas(historial, this.notificationService.notificacionesActuales);
-    },
-    error: (err: any) => console.error('Error actualizando datos:', err)
-  });
-}
-
-
-private actualizarHorasOcupadas(historial: Registro[], notificaciones: NotificacionReserva[]): void {
-  this.cargarHorasReservadas(historial);
-  this.cargarHorasAprobadas(notificaciones);
-  this.cargarHorasQR(historial, notificaciones);
-}
-
-  private handleEstadoChange(equipo: any) {
-    if (equipo.estado !== this.equipo?.estado) {
-      this.equipo.estado = equipo.estado;
-      this.updateHours();
-      this.showToast(`Estado actualizado: ${equipo.estado}`, 'warning');
+      this.route.queryParams.subscribe(params => {
+        this.ID = params['id'];
+        if (!this.ID) {
+          this.handleMissingId();
+          return;
+        }
+        this.setupPage();
+      });
+    } catch (error) {
+      console.error('Error inicializando página:', error);
+      this.showToast('Error al cargar la página', 'danger');
     }
   }
 
-private updateHours() {
-  forkJoin([
-    this.historialService.obtenerHistorial(),
-    of(this.notificationService.notificacionesActuales)
-  ]).subscribe({
-    next: ([historial, notificaciones]) => {
-      this.cargarHorasReservadas(historial);
-      this.cargarHorasAprobadas(notificaciones);
-      this.cargarHorasQR(historial, notificaciones);
-    },
-    error: err => console.error('Error actualizando horas:', err)
-  });
-}
+  private setupPage() {
+    this.obtenerEquipo(this.ID!);
+    this.iniciarMonitorEstado();
+    this.generateAvailableHours();
+    this.notificationService.obtenerCambiosObservable().subscribe(() => {
+      this.actualizarDatos();
+    });
+  }
+
+  private async handleMissingId() {
+    console.error('ID no proporcionado');
+    await this.showToast('Equipo no especificado', 'danger');
+    this.router.navigate(['/tabs/tab1']);
+  }
+
+  private iniciarMonitorEstado(): void {
+    this.refreshSubscription = interval(5000).pipe(
+      switchMap(() => this.inventarioService.EquiposId(this.ID!)),
+      switchMap((equipo: any) => {
+        this.equipo = equipo;
+        return forkJoin([
+          this.historialService.obtenerHistorial(),
+          of(this.notificationService.notificacionesActuales)
+        ]);
+      })
+    ).subscribe({
+      next: ([historial, notificaciones]) => {
+        this.actualizarHorasOcupadas(historial, notificaciones);
+      },
+      error: (err: any) => console.error('Error monitoreando estado:', err)
+    });
+  }
+
+  private actualizarDatos(): void {
+    forkJoin([
+      this.inventarioService.EquiposId(this.ID!),
+      this.historialService.obtenerHistorial()
+    ]).subscribe({
+      next: ([equipo, historial]) => {
+        this.equipo = equipo;
+        this.actualizarHorasOcupadas(historial, this.notificationService.notificacionesActuales);
+      },
+      error: (err: any) => console.error('Error actualizando datos:', err)
+    });
+  }
+
+  private actualizarHorasOcupadas(historial: Registro[], notificaciones: NotificacionReserva[]): void {
+    this.cargarHorasReservadas(historial);
+    this.cargarHorasAprobadas(notificaciones);
+    this.cargarHorasQR(historial, notificaciones);
+  }
+
+  private updateHours() {
+    forkJoin([
+      this.historialService.obtenerHistorial(),
+      of(this.notificationService.notificacionesActuales)
+    ]).subscribe({
+      next: ([historial, notificaciones]) => {
+        this.cargarHorasReservadas(historial);
+        this.cargarHorasAprobadas(notificaciones);
+        this.cargarHorasQR(historial, notificaciones);
+      },
+      error: err => console.error('Error actualizando horas:', err)
+    });
+  }
 
   obtenerEquipo(id: string) {
     this.isLoading = true;
@@ -188,22 +162,27 @@ private updateHours() {
     });
   }
 
-  generateAvailableHours() {
-    this.availableHours = Array.from({ length: 13 }, (_, i) => i + 8);
-  }
+generateAvailableHours() {
+  this.availableHours = Array.from({ length: 24 }, (_, i) => i); // Horas de 0 a 23
+}
+
 
 async cargarHorasQR(historial?: Registro[], notificaciones?: NotificacionReserva[]): Promise<void> {
   try {
-    // 1. Obtener préstamos QR activos del historial
     const historialData = historial || await lastValueFrom(this.historialService.obtenerHistorial());
+    
+    // Filtrar préstamos QR activos
     const qrRegistros = historialData.filter((r: Registro) => {
-      const inventarioId = typeof r.inventarioId === 'string' ? r.inventarioId : r.inventarioId._id;
+      if (!r.inventarioId || r.tipoPrestamo !== 'qr') return false;
+      
+      const inventarioId = typeof r.inventarioId === 'string' 
+        ? r.inventarioId 
+        : r.inventarioId._id;
       return inventarioId === this.equipo._id && 
-             r.tipoPrestamo === 'qr' && 
-             r.estado === 'Ocupado';
+             !r.horaDevolucion;
     });
 
-    // 2. Obtener notificaciones QR activas
+    // Obtener notificaciones QR activas
     const notificacionesData = notificaciones || this.notificationService.notificacionesActuales;
     const notificacionesQR = notificacionesData
       .filter(n => n.equipoId === this.equipo._id && 
@@ -211,9 +190,13 @@ async cargarHorasQR(historial?: Registro[], notificaciones?: NotificacionReserva
                   n.estado === 'Aprobado' && 
                   !n.horaFin);
 
-    // Combinar ambas fuentes
+    // Calcular horas ocupadas
     this.qrActiveHours = [
-      ...qrRegistros.map(r => parseInt(r.horaSolicitud.split(':')[0], 10)),
+      ...qrRegistros.map(r => {
+        const hora = parseInt(r.horaSolicitud.split(':')[0], 10);
+        // Bloquear la hora actual del préstamo QR
+        return hora;
+      }),
       ...notificacionesQR.map(n => parseInt(n.horaInicio.split(':')[0], 10))
     ];
   } catch (e) {
@@ -221,52 +204,54 @@ async cargarHorasQR(historial?: Registro[], notificaciones?: NotificacionReserva
   }
 }
 
-async cargarHorasReservadas(historial?: Registro[]): Promise<void> {
-  try {
-    const historialData = historial || await lastValueFrom(this.historialService.obtenerHistorial());
-    this.bookedHours = historialData
-      .filter((r: Registro) => {
-        const inventarioId = typeof r.inventarioId === 'string' ? r.inventarioId : r.inventarioId._id;
-        return inventarioId === this.equipo._id &&
-               (r.estado === 'Ocupado' || r.estado === 'Disponible');
-      })
-      .map((r: Registro) => {
-        const start = parseInt(r.horaSolicitud.split(':')[0], 10);
-        const end = parseInt(r.horaDevolucion?.split(':')[0] || `${start + 1}`, 10);
-        return Array.from({ length: end - start }, (_, i) => start + i);
-      })
-      .reduce((acc, val) => acc.concat(val), []);
 
-    const notificacionesQR = this.notificationService.notificacionesActuales
-      .filter(n => n.equipoId === this.equipo._id && n.tipo === 'qr' && n.estado === 'Aprobado' && !n.horaFin);
+  async cargarHorasReservadas(historial?: Registro[]): Promise<void> {
+    try {
+      const historialData = historial || await lastValueFrom(this.historialService.obtenerHistorial());
+      this.bookedHours = historialData
+        .filter((r: Registro) => {
+          const inventarioId = typeof r.inventarioId === 'string' ? r.inventarioId : r.inventarioId._id;
+          return inventarioId === this.equipo._id &&
+                 (r.estado === 'Ocupado' || r.estado === 'Disponible');
+        })
+        .map((r: Registro) => {
+          const start = parseInt(r.horaSolicitud.split(':')[0], 10);
+          const end = parseInt(r.horaDevolucion?.split(':')[0] || `${start + 1}`, 10);
+          return Array.from({ length: end - start }, (_, i) => start + i);
+        })
+        .reduce((acc, val) => acc.concat(val), []);
 
-    if (notificacionesQR.length > 0) {
-      const horaQR = parseInt(notificacionesQR[0].horaInicio.split(':')[0], 10);
-      this.bookedHours.push(horaQR);
+      const notificacionesQR = this.notificationService.notificacionesActuales
+        .filter(n => n.equipoId === this.equipo._id && n.tipo === 'qr' && n.estado === 'Aprobado' && !n.horaFin);
+
+      if (notificacionesQR.length > 0) {
+        const horaQR = parseInt(notificacionesQR[0].horaInicio.split(':')[0], 10);
+        this.bookedHours.push(horaQR);
+      }
+    } catch (e) {
+      console.error('Error cargando historial:', e);
+    } finally {
+      this.isLoading = false;
     }
-  } catch (e) {
-    console.error('Error cargando historial:', e);
-  } finally {
-    this.isLoading = false;
   }
-}
 
-async cargarHorasAprobadas(notificaciones?: NotificacionReserva[]): Promise<void> {
-  try {
-    const notificacionesData = notificaciones || this.notificationService.notificacionesActuales;
-    this.approvedHours = notificacionesData
-      .filter(n => n.equipoId === this.equipo?._id && n.estado === 'Aprobado')
-      .map((n: NotificacionReserva) => {
-        if (!n.horaFin) return [];
-        const start = parseInt(n.horaInicio.split(':')[0], 10);
-        const end = parseInt(n.horaFin.split(':')[0], 10);
-        return Array.from({ length: end - start }, (_, i) => start + i);
-      })
-      .reduce((acc, val) => acc.concat(val), []);
-  } catch (e) {
-    console.error('Error cargando horas aprobadas:', e);
+  async cargarHorasAprobadas(notificaciones?: NotificacionReserva[]): Promise<void> {
+    try {
+      const notificacionesData = notificaciones || this.notificationService.notificacionesActuales;
+      this.approvedHours = notificacionesData
+        .filter(n => n.equipoId === this.equipo?._id && n.estado === 'Aprobado')
+        .map((n: NotificacionReserva) => {
+          if (!n.horaFin) return [];
+          const start = parseInt(n.horaInicio.split(':')[0], 10);
+          const end = parseInt(n.horaFin.split(':')[0], 10);
+          return Array.from({ length: end - start }, (_, i) => start + i);
+        })
+        .reduce((acc, val) => acc.concat(val), []);
+    } catch (e) {
+      console.error('Error cargando horas aprobadas:', e);
+    }
   }
-}
+
   toggleHourSelection(hour: number) {
     if (this.isHourBooked(hour)) {
       this.showToast('Esta hora ya está reservada', 'warning');
@@ -284,6 +269,10 @@ async cargarHorasAprobadas(notificaciones?: NotificacionReserva[]): Promise<void
     idx > -1 ? this.selectedHours.splice(idx, 1) : this.selectedHours.push(hour);
     this.selectedHours.sort((a, b) => a - b);
   }
+
+  isHourDisabled(hour: number): boolean {
+  return this.isHourQR(hour) || this.isHourBooked(hour) || this.isHourApproved(hour);
+}
 
   isHourQR(hour: number): boolean {
     return this.qrActiveHours.includes(hour);
@@ -338,18 +327,18 @@ async cargarHorasAprobadas(notificaciones?: NotificacionReserva[]): Promise<void
     return 'success';
   }
 
-  getHourStatus(hour: number): string {
-    if (this.isHourBooked(hour)) return 'Ocupado';
-    if (this.isHourApproved(hour)) return 'Reservado';
-    if (this.isHourQR(hour)) return 'QR Activo';
-    return 'Disponible';
-  }
+getHourStatus(hour: number): string {
+  if (this.isHourQR(hour)) return 'QR Activo (No disponible)';
+  if (this.isHourBooked(hour)) return 'Ocupado';
+  if (this.isHourApproved(hour)) return 'Reservado';
+  return 'Disponible';
+}
 
   getEstadoColor(estado: string): string {
     switch (estado) {
       case 'Disponible': return 'success';
-      case 'Ocupado': return 'danger';
-      case 'Pendiente': return 'warning';
+      case 'Ocupado': return 'warning';
+      case 'En Mantenimiento': return 'danger';
       default: return 'medium';
     }
   }

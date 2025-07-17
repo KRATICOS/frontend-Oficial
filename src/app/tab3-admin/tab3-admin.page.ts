@@ -32,6 +32,15 @@ export class Tab3AdminPage implements OnInit {
 
   }
 
+  getEstadoColor(estado: string): string {
+    switch (estado) {
+      case 'Disponible': return 'success';
+      case 'Ocupado': return 'warning';
+      case 'En Mantenimiento': return 'danger';
+      default: return 'medium';
+    }
+  }
+
   obtenerEquipos() {
     this.inventarioServices.Equipos().subscribe({
       next: (res) => {
@@ -114,11 +123,6 @@ export class Tab3AdminPage implements OnInit {
     });
   }
 
-  verDetalles(equipo: any) {
-    console.log('Equipo seleccionado:', equipo);
-
-  }
-
   imprimirQR(qrUrl: string) {
     if (!qrUrl) {
       alert('No hay QR disponible para imprimir.');
@@ -166,6 +170,11 @@ export class Tab3AdminPage implements OnInit {
     ventana.document.close();
   }
 
+
+  verDetalles(id: string) {
+    console.log('Equipo seleccionado:', id);
+    this.router.navigate(['/reserva'], { queryParams: { id } });
+  }
 
 
 }

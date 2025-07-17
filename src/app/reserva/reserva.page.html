@@ -22,7 +22,7 @@
       <ion-card-content>
         <div class="mosaic-grid">
           <div *ngFor="let img of equipo.imagenes" class="mosaic-item">
-            <img [src]="img.url" alt="Imagen del equipo" class="mosaic-image" />
+            <img src="https://gmflswlxghleuauuieis.supabase.co/storage/v1/object/public/inventario/{{img.url }}" alt="Imagen del equipo" class="mosaic-image" />
           </div>
         </div>
       </ion-card-content>
@@ -98,7 +98,7 @@
         <ion-icon name="checkmark-circle" slot="start"></ion-icon>
         Confirmar Reserva
       </ion-button>
-
+  
       <ion-button expand="block" fill="clear" color="medium" (click)="limpiarSeleccion()">
         Limpiar selección
       </ion-button>

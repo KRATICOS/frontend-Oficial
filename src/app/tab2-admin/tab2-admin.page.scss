@@ -1,22 +1,68 @@
-
-.registro-card {
-  margin-bottom: 20px;
+/* General background */
+ion-content {
+  --background: #f5f7fa;
 }
 
-.material-titulo {
-  font-size: 1.3rem;
-  color: #1a1a1a;
+/* Table header */
+.table-header {
+  background: #3b82f6;
+  color: white;
+  font-weight: 600;
+  border-radius: 8px;
+  padding: 8px 0;
 }
 
-ion-card-subtitle {
-  color: #6c757d;
+/* Table row styling */
+.table-row {
+  background: white;
+  border-radius: 8px;
+  margin: 6px 0;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+  align-items: center;
+  font-size: 0.92rem;
 }
 
-ion-item p {
-  margin: 0;
-  color: #333;
+.table-row:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.12);
 }
 
+/* Col alignment */
+.table-row ion-col, .table-header ion-col {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px;
+  text-align: center;
+}
+
+/* Truncate long text */
+.truncate {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Button tweaks */
 ion-button {
-  font-weight: bold;
+  --border-radius: 6px;
+  --padding-start: 10px;
+  --padding-end: 10px;
+  font-size: 0.8rem;
+  height: 30px;
+  line-height: 1;
+}
+
+/* Responsive layout for mobile */
+@media (max-width: 600px) {
+  .table-header ion-col,
+  .table-row ion-col {
+    font-size: 0.8rem;
+    padding: 6px 4px;
+  }
+
+  ion-button {
+    font-size: 0.7rem;
+    height: 28px;
+  }
 }

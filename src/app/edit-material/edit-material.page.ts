@@ -45,6 +45,8 @@ import {
   mailOutline, logOutOutline, arrowForwardOutline, createOutline,
   add, barcode, cube, pricetag, reader, albums, trash
 } from 'ionicons/icons';
+import { timeout, catchError } from 'rxjs/operators';
+import { throwError } from 'rxjs';
 
 @Component({
   selector: 'app-actualizar-material',
@@ -109,40 +111,88 @@ export class EditMaterialPage implements OnInit {
   }
 
   async ngOnInit() {
-    this.equipoId = this.activatedRoute.snapshot.paramMap.get('id') || '';
-    if (!this.equipoId) {
-      await this.presentToast('No se proporcionó ID de equipo', 'danger');
-      this.router.navigateByUrl('/tabs-Admin/tab4');
-      return;
-    }
-    await this.cargarEquipo();
+  this.equipoId = this.activatedRoute.snapshot.paramMap.get('id') || '';
+  if (!this.equipoId) {
+    await this.presentToast('No se proporcionó ID de equipo', 'danger');
+    this.router.navigateByUrl('/tabs-Admin/tab4');
+    return;
+  }
+  
+  // Initialize form first
+  this.initForm();
+  
+  // Then load data
+  await this.cargarEquipo();
     this.initForm();
+     this.initEmptyForm(); 
   }
+  private initEmptyForm() {
+  this.equipoForm = this.fb.group({
+    name: ['', Validators.required],
+    model: ['', Validators.required],
+    description: ['', Validators.required],
+    categoria: ['', Validators.required],
+    nseries: ['', Validators.required],
+    estado: ['Disponible', Validators.required]
+  });
+}
 
-  private async cargarEquipo() {
-    const loading = await this.loadingController.create({ message: 'Cargando equipo…' });
-    await loading.present();
-    try {
-      this.equipo = await firstValueFrom(this.inventarioService.EquiposId(this.equipoId));
-      this.imagenesPreview = this.equipo.imagenes?.map(img => img.url) ?? [];
-    } catch {
-      await this.presentToast('Error al cargar equipo', 'danger');
-      this.router.navigateByUrl('/tabs-Admin/tab4');
-    } finally {
-      await loading.dismiss();
-    }
+private async cargarEquipo() {
+  const loading = await this.loadingController.create({ 
+    message: 'Cargando equipo…',
+    spinner: 'crescent'
+  });
+  
+  await loading.present();
+  
+  try {
+    this.equipo = await firstValueFrom(
+      this.inventarioService.EquiposId(this.equipoId).pipe(
+        timeout(10000), // Añade timeout para evitar esperas infinitas
+        catchError(error => {
+          console.error('Error al cargar equipo:', error);
+          this.presentToast('Error al cargar los datos del equipo', 'danger');
+          this.router.navigateByUrl('/tabs-Admin/tab4');
+          return throwError(() => new Error(error));
+        })
+      )
+    );
+    
+this.imagenesPreview = this.equipo.imagenes?.map(
+  img => `https://gmflswlxghleuauuieis.supabase.co/storage/v1/object/public/inventario/${img.url}`
+) ?? [];    
+    this.patchFormValues();
+    
+  } catch (error) {
+    console.error('Error inesperado:', error);
+    await this.presentToast('Error inesperado al cargar equipo', 'danger');
+    this.router.navigateByUrl('/tabs-Admin/tab4');
+  } finally {
+    await loading.dismiss();
   }
+}
 
-  private initForm() {
-    this.equipoForm = this.fb.group({
-      name: [this.equipo?.name || '', Validators.required],
-      model: [this.equipo?.model || '', Validators.required],
-      description: [this.equipo?.description || '', Validators.required],
-      categoria: [this.equipo?.categoria || '', Validators.required],
-      nseries: [this.equipo?.nseries || '', Validators.required],
-      estado: [this.equipo?.estado || 'Disponible', Validators.required]
-    });
-  }
+private patchFormValues() {
+  this.equipoForm.patchValue({
+    name: this.equipo?.name,
+    model: this.equipo?.model,
+    description: this.equipo?.description,
+    categoria: this.equipo?.categoria,
+    nseries: this.equipo?.nseries,
+    estado: this.equipo?.estado
+  });
+}
+
+private initForm() {
+  this.equipoForm = this.fb.group({
+    name: [this.equipo?.name || '', Validators.required],
+    model: [this.equipo?.model || '', Validators.required],
+    description: [this.equipo?.description || '', Validators.required],
+    categoria: [this.equipo?.categoria || '', Validators.required],
+    nseries: [this.equipo?.nseries || '', Validators.required],
+    estado: [this.equipo?.estado || 'Disponible', Validators.required]
+  });
+}
 
   onFileSelected(event: Event) {
     const input = event.target as HTMLInputElement;
@@ -215,6 +265,10 @@ export class EditMaterialPage implements OnInit {
       this.selectedFiles.forEach((file, i) => fd.append('nuevasImagenes', file, `img-${i}-${file.name}`));
 
       await firstValueFrom(this.inventarioService.actualizarEquipo(this.equipoId, fd));
+
+          await loading.dismiss(); // 👈 aseguramos que el loading se cierre ANTES de navegar
+
+    await this.presentToast('Equipo actualizado', 'success');
 
       this.presentToast('Equipo actualizado', 'success');
       this.router.navigate(['/tabs-Admin/tab4']);

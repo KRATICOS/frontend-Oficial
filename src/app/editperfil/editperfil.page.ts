@@ -256,7 +256,12 @@ export class EditperfilPage implements OnInit {
 }
 
 
-  cancel() {
+cancel() {
+  // Usamos el rol del usuario actual almacenado en la propiedad
+  if (this.currentUser?.rol === 'admin') {
+    this.router.navigate(['/tabs-Admin/tab5']);
+  } else {
     this.router.navigate(['/tabs/tab3']);
   }
+}
 }

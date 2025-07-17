@@ -31,7 +31,7 @@
           <div class="image-container">
             <ion-img
               *ngIf="equipo.imagenes?.length"
-              [src]="equipo.imagenes[0]?.url"
+              src="https://gmflswlxghleuauuieis.supabase.co/storage/v1/object/public/inventario/{{equipo.imagenes[0]?.url }}"
               alt="Imagen del equipo"
               class="equipment-image"
             ></ion-img>

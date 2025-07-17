@@ -7,12 +7,14 @@ import {
   IonItemOption, IonIcon, AlertController, ToastController, IonAvatar, IonButton 
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
-import { checkmarkCircle, closeCircle, trash, time, qrCode, alarm } from 'ionicons/icons';
+import { checkmarkCircle, closeCircle, trash, time, qrCode, alarm, notificationsOff } from 'ionicons/icons';
 
 import { NotificationService, NotificacionReserva } from '../../services/notification.service';
 import { InventarioService } from '../../services/inventario.service';
 import { ServiceService } from '../../services/service.service';
 import { LocalNotifications } from '@capacitor/local-notifications';
+import { lastValueFrom } from 'rxjs';
+import { HistorialService } from '../../services/historial.service'; // Add this import
 
 @Component({
   selector: 'app-notificaciones-admin',
@@ -30,7 +32,7 @@ export class NotificacionesAdminComponent implements OnInit {
   segmento: 'pendientes' | 'aprobadas' | 'rechazadas' | 'qr' | 'devoluciones' = 'pendientes';
 
   constructor() {
-    addIcons({ checkmarkCircle, closeCircle, trash, time, qrCode, alarm });
+    addIcons({checkmarkCircle,closeCircle,trash,notificationsOff,time,qrCode,alarm});
   }
 
   private notificationService = inject(NotificationService);
@@ -38,6 +40,7 @@ export class NotificacionesAdminComponent implements OnInit {
   private inventarioService = inject(InventarioService);
   private userService = inject(ServiceService);
   private toastController = inject(ToastController);
+  private historialService = inject(HistorialService); // Add this injection
 
   ngOnInit(): void {
     this.setupNotifications();
@@ -77,22 +80,22 @@ export class NotificacionesAdminComponent implements OnInit {
     }
   }
 
-private filtrarDevolucionesPendientes(lista: NotificacionReserva[]): NotificacionReserva[] {
-  return lista.filter(n => {
-    if (n.estado === 'Aprobado' && n.tipo === 'reserva' && n.horaFin) {
-      try {
-        const fechaFin = new Date(n.fecha);
-        const horaFin = parseInt(n.horaFin.split(':')[0], 10);
-        fechaFin.setHours(horaFin, 0, 0, 0);
-        return new Date().getTime() > fechaFin.getTime();
-      } catch (error) {
-        console.error('Error procesando fecha:', error);
-        return false;
+  private filtrarDevolucionesPendientes(lista: NotificacionReserva[]): NotificacionReserva[] {
+    return lista.filter(n => {
+      if (n.estado === 'Aprobado' && n.tipo === 'reserva' && n.horaFin) {
+        try {
+          const fechaFin = new Date(n.fecha);
+          const horaFin = parseInt(n.horaFin.split(':')[0], 10);
+          fechaFin.setHours(horaFin, 0, 0, 0);
+          return new Date().getTime() > fechaFin.getTime();
+        } catch (error) {
+          console.error('Error procesando fecha:', error);
+          return false;
+        }
       }
-    }
-    return false;
-  });
-}
+      return false;
+    });
+  }
 
   segmentChanged(ev: CustomEvent) {
     this.segmento = ev.detail.value;
@@ -105,7 +108,7 @@ private filtrarDevolucionesPendientes(lista: NotificacionReserva[]): Notificacio
 
   async aprobar(notif: NotificacionReserva) {
     try {
-      await this.inventarioService.ActualizarEquipos(notif.equipoId, { estado: 'Ocupado' }).toPromise();
+      await lastValueFrom(this.inventarioService.ActualizarEquipos(notif.equipoId, { estado: 'Ocupado' }));
       this.notificationService.actualizarEstado(notif._id, 'Aprobado');
       
       await Promise.all([
@@ -144,7 +147,7 @@ private filtrarDevolucionesPendientes(lista: NotificacionReserva[]): Notificacio
 
   async marcarComoDevuelto(notif: NotificacionReserva) {
     try {
-      await this.inventarioService.ActualizarEquipos(notif.equipoId, { estado: 'Disponible' }).toPromise();
+      await lastValueFrom(this.inventarioService.ActualizarEquipos(notif.equipoId, { estado: 'Disponible' }));
       
       await Promise.all([
         this.notificationService.notificarDevolucionExitosa(notif),
@@ -209,5 +212,59 @@ private filtrarDevolucionesPendientes(lista: NotificacionReserva[]): Notificacio
       position: 'top'
     });
     await toast.present();
+  }
+
+  async manejarDevolucion(notif: NotificacionReserva, aceptada: boolean) {
+    const alert = await this.alertController.create({
+      header: aceptada ? 'Confirmar Devolución' : 'Rechazar Devolución',
+      message: aceptada 
+        ? '¿Confirmar que el material ha sido devuelto correctamente?' 
+        : '¿Rechazar la devolución del material?',
+      buttons: [
+        {
+          text: 'Cancelar',
+          role: 'cancel'
+        },
+        {
+          text: aceptada ? 'Confirmar' : 'Rechazar',
+          handler: async () => {
+            try {
+              await this.notificationService.confirmarDevolucion(notif._id, aceptada);
+              
+              if (aceptada) {
+                await lastValueFrom(this.inventarioService.ActualizarEquipos(notif.equipoId, { estado: 'Disponible' }));
+                
+                const prestamos = await lastValueFrom(
+                  this.historialService.obtenerPrestamosActivosPorUsuario(notif.usuarioId)
+                );
+                
+                const prestamoActivo = prestamos.find(p => {
+                  const idEquipo = typeof p.inventarioId === 'string' 
+                    ? p.inventarioId 
+                    : p.inventarioId?._id;
+                  return idEquipo === notif.equipoId;
+                });
+
+                if (prestamoActivo) {
+                  await lastValueFrom(
+                    this.historialService.registrarDevolucion(prestamoActivo._id)
+                  );
+                }
+              }
+              
+              this.mostrarToast(
+                aceptada ? 'Devolución confirmada' : 'Devolución rechazada',
+                aceptada ? 'success' : 'warning'
+              );
+            } catch (error) {
+              console.error('Error manejando devolución:', error);
+              this.mostrarToast('Error al procesar devolución', 'danger');
+            }
+          }
+        }
+      ]
+    });
+    
+    await alert.present();
   }
 }

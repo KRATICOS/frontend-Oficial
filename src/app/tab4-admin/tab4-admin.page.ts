@@ -1,11 +1,11 @@
 import { Component, CUSTOM_ELEMENTS_SCHEMA, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { 
-  IonContent, IonButton, IonItem, IonLabel, IonSelect, IonSelectOption, 
-  IonInput, IonList, IonTitle, IonToolbar, IonHeader, IonCard, IonCardHeader, 
-  IonCardTitle, IonCardSubtitle, IonCardContent, IonButtons, IonBackButton, 
-  IonGrid, IonRow, IonCol, IonIcon, IonChip, IonTextarea, IonToast 
+import {
+  IonContent, IonButton, IonItem, IonLabel, IonSelect, IonSelectOption,
+  IonInput, IonList, IonTitle, IonToolbar, IonHeader, IonCard, IonCardHeader,
+  IonCardTitle, IonCardSubtitle, IonCardContent, IonButtons, IonBackButton,
+  IonGrid, IonRow, IonCol, IonIcon, IonChip, IonTextarea, IonToast
 } from '@ionic/angular/standalone';
 import { InventarioService } from '../services/inventario.service';
 import { Router } from '@angular/router';
@@ -21,7 +21,6 @@ import {
   logOutOutline,
   arrowForwardOutline,
   createOutline,
-  // 👇 nuevos + reales en tu template
   add,
   barcode,
   cube,
@@ -31,20 +30,20 @@ import {
 } from 'ionicons/icons';
 
 addIcons({
-  'checkmark-circle':  checkmarkCircle,
-  'close-circle':      closeCircle,
-  'construct':         construct,
+  'checkmark-circle': checkmarkCircle,
+  'close-circle': closeCircle,
+  'construct': construct,
   'notifications-outline': notificationsOutline,
-  'mail-outline':      mailOutline,
-  'log-out-outline':   logOutOutline,
+  'mail-outline': mailOutline,
+  'log-out-outline': logOutOutline,
   'arrow-forward-outline': arrowForwardOutline,
-  'create-outline':    createOutline,
-  'add':               add,
-  'barcode':           barcode,
-  'cube':              cube,
-  'pricetag':          pricetag,
-  'reader':            reader,
-  'albums':            albums,
+  'create-outline': createOutline,
+  'add': add,
+  'barcode': barcode,
+  'cube': cube,
+  'pricetag': pricetag,
+  'reader': reader,
+  'albums': albums,
 });
 
 @Component({
@@ -54,9 +53,9 @@ addIcons({
   schemas: [CUSTOM_ELEMENTS_SCHEMA],
   standalone: true,
   imports: [
-    IonChip, IonIcon, IonCol, IonRow, IonGrid, IonBackButton, IonButtons, 
-    IonCardContent, IonCardTitle, IonCardHeader, IonCard, IonHeader, IonToolbar, 
-    IonTitle, IonList, CommonModule, FormsModule, IonContent, IonButton, IonItem, 
+    IonChip, IonIcon, IonCol, IonRow, IonGrid, IonBackButton, IonButtons,
+    IonCardContent, IonCardTitle, IonCardHeader, IonCard, IonHeader, IonToolbar,
+    IonTitle, IonList, CommonModule, FormsModule, IonContent, IonButton, IonItem,
     IonLabel, IonInput, IonTextarea, IonSelect, IonSelectOption
   ]
 })
@@ -96,7 +95,7 @@ export class Tab4AdminPage implements OnInit {
     if (!input.files || input.files.length === 0) return;
 
     const files = Array.from(input.files);
-    
+
     if (this.imagenesPreview.length + files.length > 5) {
       this.presentToast('Máximo 5 imágenes permitidas', 'warning');
       return;
@@ -131,8 +130,8 @@ export class Tab4AdminPage implements OnInit {
   }
 
   registrarEquipo(): void {
-    if (!this.equipo.name || !this.equipo.model || !this.equipo.categoria || 
-        !this.equipo.description || !this.equipo.nseries) {
+    if (!this.equipo.name || !this.equipo.model || !this.equipo.categoria ||
+      !this.equipo.description || !this.equipo.nseries) {
       this.presentToast('Todos los campos son obligatorios', 'warning');
       return;
     }
@@ -154,17 +153,17 @@ export class Tab4AdminPage implements OnInit {
       formData.append('imagenes', file, `imagen-${index}-${file.name}`);
     });
 
-this.inventarioService.registrarEquipoConImagenes(formData).subscribe(
-  (response: any) => {
-    this.presentToast('Equipo registrado correctamente', 'success');
-    this.limpiarFormulario();
-    this.router.navigate(['/tabs-Admin/tab4']);
-  },
-  (error: any) => {
-    console.error('Error al registrar equipo:', error);
-    this.presentToast('Error al registrar equipo', 'danger');
-  }
-);
+    this.inventarioService.registrarEquipoConImagenes(formData).subscribe(
+      (response: any) => {
+        this.presentToast('Equipo registrado correctamente', 'success');
+        this.limpiarFormulario();
+        this.router.navigate(['/tabs-Admin/tab4']);
+      },
+      (error: any) => {
+        console.error('Error al registrar equipo:', error);
+        this.presentToast('Error al registrar equipo', 'danger');
+      }
+    );
   }
 
   abrirSelector(): void {

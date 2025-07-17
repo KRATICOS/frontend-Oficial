@@ -11,8 +11,7 @@ import {
   IonLabel,
   IonButton,
   IonText,
-  IonInput, IonCard, IonCardHeader, IonAvatar, IonCardTitle, IonCardSubtitle, IonCardContent, IonIcon
-} from '@ionic/angular/standalone';
+  IonInput, IonCard, IonCardHeader, IonAvatar, IonCardTitle, IonCardSubtitle, IonCardContent, IonIcon } from '@ionic/angular/standalone';
 import { RouterLink, RouterModule, Router } from '@angular/router';
 import { ServiceService } from 'src/app/services/service.service';
 import { Usuario } from 'src/app/interface';
@@ -22,7 +21,7 @@ import { Usuario } from 'src/app/interface';
   templateUrl: './login.page.html',
   styleUrls: ['./login.page.scss'],
   standalone: true,
-  imports: [IonIcon, IonCardContent, IonCardSubtitle, IonCardTitle, IonAvatar, IonCardHeader, IonCard,
+  imports: [IonIcon, IonCardContent, IonCardSubtitle, IonCardTitle, IonAvatar, IonCardHeader, IonCard, 
     CommonModule,
     FormsModule,
     IonContent,
@@ -31,14 +30,14 @@ import { Usuario } from 'src/app/interface';
     IonInput,
     IonLabel,
     RouterModule,
-    IonText
+   IonText
   ]
 })
 export class LoginPage {
 
   email: string = '';
   password: string = '';
-  showPassword: boolean = false;
+    showPassword: boolean = false;
   passwordFieldType: string = 'password';
 
   private authService = inject(ServiceService);
@@ -48,18 +47,18 @@ export class LoginPage {
 
   User: Usuario[] = [];
 
-  ngOnInit() {
-    setInterval(() => {
-      this.currentImage = (this.currentImage + 1) % this.carouselImages.length;
-    }, 3000); // cada 3 segundos
-  }
+ngOnInit() {
+  setInterval(() => {
+    this.currentImage = (this.currentImage + 1) % this.carouselImages.length;
+  }, 3000); // cada 3 segundos
+}
 
-  currentImage: number = 0;
+currentImage: number = 0;
 
   togglePasswordVisibility() {
-    this.showPassword = !this.showPassword;
-    this.passwordFieldType = this.showPassword ? 'text' : 'password';
-  }
+  this.showPassword = !this.showPassword;
+  this.passwordFieldType = this.showPassword ? 'text' : 'password';
+}
 
   slideOpts = {
     initialSlide: 0,
@@ -74,41 +73,42 @@ export class LoginPage {
     }
   };
 
-  carouselImages: string[] = [
-    'assets/KITSdeherramientas.png',
-    'assets/multimetros.png',
-    'assets/proyector1.png',
-    'assets/festo.jpg',
-    'assets/fuenteV.png'
-  ];
+carouselImages: string[] = [
+  'assets/KITSdeherramientas.png',
+  'assets/multimetros.png',
+  'assets/proyector1.png',
+  'assets/festo.jpg',
+  'assets/fuenteV.png'
+];
 
-  onLogin() {
-    if (!this.email || !this.password) {
-      console.log('Correo y contraseña son requeridos');
-      return;
-    }
-
-    this.authService.login({ email: this.email, password: this.password })
-      .subscribe({
-        next: (response) => {
-          console.log('Login exitoso', response);
-          localStorage.setItem('token', response.token);
-          localStorage.setItem('User', JSON.stringify(response.usuario));
-          localStorage.setItem('rol', response.usuario.rol);
-
-          const rol = response.usuario.rol; 
-
-          if (rol === 'admin') {
-            this.router.navigate(['/tabs-Admin/tab5']);
-          } else {
-            this.router.navigate(['/tabs/tab3']);
-          }
-        },
-        error: (err) => {
-          console.error('Error al iniciar sesión:', err);
-        }
-      });
+onLogin() {
+  if (!this.email || !this.password) {
+    console.log('Correo y contraseña son requeridos');
+    return;
   }
+
+  this.authService.login({ email: this.email, password: this.password })
+    .subscribe({
+      next: (response) => {
+        console.log('Login exitoso', response);
+        localStorage.setItem('token', response.token);
+        localStorage.setItem('User', JSON.stringify(response.usuario));
+
+        const rol = response.usuario.rol; // ← ya existe
+
+        if (rol === 'admin' || rol === 'superadmin') {
+          // ✅ superadmin usa el mismo dashboard que admin
+          this.router.navigate(['/tabs-Admin/tab5']);
+        } else {
+          this.router.navigate(['/tabs/tab3']);
+        }
+      },
+      error: (err) => {
+        console.error('Error al iniciar sesión:', err);
+      }
+    });
+}
+
 
 
 

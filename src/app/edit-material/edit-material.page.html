@@ -6,7 +6,6 @@
 
     <ion-title>Actualizar equipo</ion-title>
 
-    <!-- botón de eliminar -->
     <ion-buttons slot="end">
       <ion-button color="danger" (click)="confirmarEliminacion()">
         <ion-icon slot="icon-only" name="trash"></ion-icon>
@@ -32,7 +31,7 @@
               space-between="10"
               navigation="true"
               pagination="true"
-              *ngIf="imagenesPreview.length"
+              *ngIf="imagenesPreview?.length"
             >
               <swiper-slide *ngFor="let img of imagenesPreview; let i = index">
                 <div class="slide-wrapper">
@@ -46,18 +45,17 @@
             <ion-button size="small" expand="block" fill="outline" class="add-img-btn" (click)="abrirSelector()">
               <ion-icon name="add" slot="start"></ion-icon>
               Añadir imagen
-              <span class="count-badge" *ngIf="imagenesPreview.length">
+              <span class="count-badge" *ngIf="imagenesPreview?.length">
                 {{ imagenesPreview.length }}/5
               </span>
             </ion-button>
 
-            <!-- input hidden real -->
             <input id="fileInput" type="file" accept="image/*" multiple hidden (change)="onFileSelected($event)" />
           </ion-card-header>
 
           <!-- Formulario reactivo -->
           <ion-card-content>
-            <form [formGroup]="equipoForm" (ngSubmit)="actualizarEquipo()" novalidate>
+            <form [formGroup]="equipoForm" (ngSubmit)="actualizarEquipo()" novalidate *ngIf="equipoForm">
               <ion-list lines="full" class="form-list">
 
                 <ion-item [class.ion-invalid]="equipoForm.get('name')?.invalid && equipoForm.get('name')?.touched">
@@ -115,31 +113,30 @@
                 <div class="estado-wrapper ion-margin-top">
                   <ion-label class="estado-label"><strong>Estado</strong></ion-label>
                   <div class="estado-chips">
-                    <ion-chip outline (click)="cambiarEstado('Disponible')" [color]="equipoForm.value.estado === 'Disponible' ? 'success' : ''">
+                    <ion-chip outline (click)="cambiarEstado('Disponible')" [color]="equipoForm?.value?.estado === 'Disponible' ? 'success' : ''">
                       <ion-icon name="checkmark-circle"></ion-icon>
                       <ion-label>Disponible</ion-label>
                     </ion-chip>
 
-                    <ion-chip outline (click)="cambiarEstado('Ocupado')" [color]="equipoForm.value.estado === 'Ocupado' ? 'warning' : ''">
+                    <ion-chip outline (click)="cambiarEstado('Ocupado')" [color]="equipoForm?.value?.estado === 'Ocupado' ? 'warning' : ''">
                       <ion-icon name="close-circle"></ion-icon>
                       <ion-label>Ocupado</ion-label>
                     </ion-chip>
 
-                    <ion-chip outline (click)="cambiarEstado('En Mantenimiento')" [color]="equipoForm.value.estado === 'En Mantenimiento' ? 'danger' : ''">
+                    <ion-chip outline (click)="cambiarEstado('En Mantenimiento')" [color]="equipoForm?.value?.estado === 'En Mantenimiento' ? 'danger' : ''">
                       <ion-icon name="construct"></ion-icon>
                       <ion-label>Mantenimiento</ion-label>
                     </ion-chip>
                   </div>
                 </div>
 
-                <ion-button expand="block" color="primary" class="ion-margin-top" type="submit" [disabled]="equipoForm.invalid">
+                <ion-button expand="block" color="primary" class="ion-margin-top" type="submit" [disabled]="equipoForm?.invalid">
                   Actualizar equipo
                 </ion-button>
               </ion-list>
             </form>
           </ion-card-content>
         </ion-card>
-
       </ion-col>
     </ion-row>
   </ion-grid>

@@ -114,32 +114,56 @@ export class NotificacionesUserComponent implements OnInit {
     }
   }
 
-  private getNotificationContent(notification: NotificacionReserva): { title: string, body: string } {
-    switch(notification.estado) {
-      case 'Aprobado':
-        return { 
-          title: 'Reserva Aprobada',
-          body: `Tu reserva para ${notification.equipoNombre} ha sido aprobada` 
-        };
-      case 'Rechazado':
-        return { 
-          title: 'Reserva Rechazada',
-          body: `Tu reserva para ${notification.equipoNombre} ha sido rechazada` 
-        };
-      case 'Devolución Próxima':
-        return { 
-          title: 'Devolución Próxima',
-          body: `Tienes poco tiempo para devolver ${notification.equipoNombre}` 
-        };
-      case 'Devolución Vencida':
-        return { 
-          title: 'Devolución Vencida',
-          body: `La devolución de ${notification.equipoNombre} está vencida` 
-        };
-      default:
-        return { title: 'Nueva notificación', body: 'Tienes una nueva notificación' };
-    }
+private getNotificationContent(notification: NotificacionReserva): { title: string, body: string } {
+  // Handle return notifications first
+  if (notification.tipo === 'devolucion') {
+    return { 
+      title: notification.estado === 'Aprobado' ? 'Devolución Aceptada' : 'Devolución Rechazada',
+      body: notification.estado === 'Aprobado'
+        ? `El administrador ha confirmado la devolución de ${notification.equipoNombre}`
+        : `El administrador ha rechazado la devolución de ${notification.equipoNombre}`
+    };
   }
+
+  // Handle other notification types
+  switch(notification.estado) {
+    case 'Aprobado':
+      return { 
+        title: 'Reserva Aprobada',
+        body: `Tu reserva para ${notification.equipoNombre} ha sido aprobada` 
+      };
+    case 'Rechazado':
+      return { 
+        title: 'Reserva Rechazada',
+        body: `Tu reserva para ${notification.equipoNombre} ha sido rechazada` 
+      };
+    case 'Devolución Próxima':
+      return { 
+        title: 'Devolución Próxima',
+        body: `Tienes poco tiempo para devolver ${notification.equipoNombre}` 
+      };
+    case 'Devolución Vencida':
+      return { 
+        title: 'Devolución Vencida',
+        body: `La devolución de ${notification.equipoNombre} está vencida` 
+      };
+    case 'Pendiente':
+      return notification.tipo === 'qr'
+        ? { 
+            title: 'Préstamo QR Registrado', 
+            body: `Has tomado ${notification.equipoNombre} correctamente` 
+          }
+        : { 
+            title: 'Solicitud de Reserva', 
+            body: `Tu solicitud para ${notification.equipoNombre} está en revisión` 
+          };
+    default:
+      return { 
+        title: 'Nueva notificación', 
+        body: 'Tienes una nueva notificación' 
+      };
+  }
+}
 
   private showToastMessage(message: string, estado: string) {
     this.toastMessage = message;

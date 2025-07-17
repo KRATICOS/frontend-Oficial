@@ -10,14 +10,15 @@ export interface NotificacionReserva {
   usuarioNombre: string;
   usuarioImagen?: string;
   horaInicio: string;
-  horaFin?: string;                                    // opcional ⇢ solo reservas
+  horaFin?: string;        
+  horaFinNumero?: number;                              // opcional ⇢ solo reservas
   observaciones?: string;
   estado: 'Pendiente' | 'Aprobado' | 'Rechazado' |
           'Devolución Próxima' | 'Devolución Vencida';
   fecha: Date;
   leida: boolean;
   notificacionesProgramadas?: number[];
-  tipo: 'qr' | 'reserva';                              // ahora requerido
+  tipo: 'qr' | 'reserva' | 'devolucion';                              // ahora requerido
   ultimaNotificacionVencida?: Date;
   extra?: {
     type?: string;
@@ -65,6 +66,54 @@ export class NotificationService {
       this.limpiarTodas();
     }
   }
+
+
+  // Agregar nuevos métodos
+async solicitarDevolucion(notificacionId: string): Promise<NotificacionReserva> {
+  const notificacion = this.notificacionesActuales.find(n => n._id === notificacionId);
+  if (!notificacion) {
+    throw new Error('Notificación no encontrada');
+  }
+
+  const nuevaNotificacion: Omit<NotificacionReserva, '_id' | 'fecha' | 'leida'> = {
+    equipoId: notificacion.equipoId,
+    equipoNombre: notificacion.equipoNombre,
+    usuarioId: notificacion.usuarioId,
+    usuarioNombre: notificacion.usuarioNombre,
+    horaInicio: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+    estado: 'Pendiente',
+    tipo: 'devolucion',
+    observaciones: 'Solicitud de devolución'
+  };
+
+  return this.agregarNotificacion(nuevaNotificacion);
+}
+
+async confirmarDevolucion(notificacionId: string, aceptada: boolean): Promise<void> {
+  const notificacion = this.notificacionesActuales.find(n => n._id === notificacionId);
+  if (!notificacion) {
+    throw new Error('Notificación no encontrada');
+  }
+
+  const estado = aceptada ? 'Aprobado' : 'Rechazado';
+  
+  // Actualizar estado en la notificación de devolución
+  this.actualizarEstado(notificacionId, estado);
+
+  // Notificar al usuario
+  const titulo = aceptada ? 'Devolución Aceptada' : 'Devolución Rechazada';
+  const mensaje = aceptada 
+    ? `El administrador ha aceptado la devolución de ${notificacion.equipoNombre}`
+    : `El administrador ha rechazado la devolución de ${notificacion.equipoNombre}`;
+
+  await this.enviarNotificacionUsuario(
+    notificacion.usuarioId,
+    titulo,
+    mensaje,
+    notificacionId
+  );
+}
+
 
   notificarCambios() {
   this.cambiosSubject.next();
@@ -513,64 +562,69 @@ if (notifExistente) {
     }
   }
 
- private async programarNotificaciones(
-    notificacion: NotificacionReserva
-  ): Promise<number[]> {
+private async programarNotificaciones(
+  notificacion: NotificacionReserva
+): Promise<number[]> {
+  const notifIds: number[] = [];
 
-    const notifIds: number[] = [];
-
-    try {
-      if (!notificacion.horaFin) {
-        throw new Error('horaFin no definida para la reserva');
-      }
-
-      const startHour = parseInt(notificacion.horaInicio.split(':')[0], 10);
-      const endHour   = parseInt(notificacion.horaFin.split(':')[0], 10);
-
-      const now = new Date();
-
-      const schedule30 = new Date(
-        now.getFullYear(), now.getMonth(), now.getDate(),
-        startHour - 1, 30
-      );
-      const scheduleLate = new Date(
-        now.getFullYear(), now.getMonth(), now.getDate(),
-        endHour, 15
-      );
-
-      if (schedule30 <= now || scheduleLate <= now) {
-        throw new Error('Las fechas de notificación deben ser futuras');
-      }
-
-      const id30   = Math.floor(Date.now() / 1000) + 1;
-      const idLate = id30 + 1;
-
-      await LocalNotifications.schedule({
-        notifications: [
-          {
-            id: id30,
-            title: 'Reserva próxima a activarse',
-            body: `Tu reserva para ${notificacion.equipoNombre} se activará en 30 minutos.`,
-            schedule: { at: schedule30 },
-            extra: { reservaId: notificacion._id }
-          },
-          {
-            id: idLate,
-            title: 'Devolución atrasada',
-            body: `Tu reserva para ${notificacion.equipoNombre} está atrasada. Devuelve el equipo.`,
-            schedule: { at: scheduleLate },
-            extra: { reservaId: notificacion._id }
-          }
-        ]
-      });
-
-      notifIds.push(id30, idLate);
-    } catch (e) {
-      console.error('Error programando notificaciones:', e);
-      throw e;
+  try {
+    if (!notificacion.horaFin) {
+      throw new Error('horaFin no definida para la reserva');
     }
-    return notifIds;
+
+    const startHour = parseInt(notificacion.horaInicio.split(':')[0], 10);
+    const endHour = parseInt(notificacion.horaFin.split(':')[0], 10);
+
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+    // Schedule 30 minutes before start
+    const schedule30 = new Date(today);
+    schedule30.setHours(startHour - 1, 30, 0, 0);
+    
+    // If it's already past this time today, schedule for tomorrow
+    if (schedule30 <= now) {
+      schedule30.setDate(schedule30.getDate() + 1);
+    }
+
+    // Schedule 15 minutes after end time
+    const scheduleLate = new Date(today);
+    scheduleLate.setHours(endHour, 15, 0, 0);
+    
+    // If it's already past this time today, schedule for tomorrow
+    if (scheduleLate <= now) {
+      scheduleLate.setDate(scheduleLate.getDate() + 1);
+    }
+
+    const id30 = Math.floor(Date.now() / 1000) + 1;
+    const idLate = id30 + 1;
+
+    await LocalNotifications.schedule({
+      notifications: [
+        {
+          id: id30,
+          title: 'Reserva próxima a activarse',
+          body: `Tu reserva para ${notificacion.equipoNombre} se activará en 30 minutos.`,
+          schedule: { at: schedule30 },
+          extra: { reservaId: notificacion._id }
+        },
+        {
+          id: idLate,
+          title: 'Devolución atrasada',
+          body: `Tu reserva para ${notificacion.equipoNombre} está atrasada. Devuelve el equipo.`,
+          schedule: { at: scheduleLate },
+          extra: { reservaId: notificacion._id }
+        }
+      ]
+    });
+
+    notifIds.push(id30, idLate);
+  } catch (e) {
+    console.error('Error programando notificaciones:', e);
+    throw e;
   }
+  return notifIds;
+}
 
   async actualizarEstado(id: string, nuevoEstado: 'Aprobado' | 'Rechazado') {
     try {

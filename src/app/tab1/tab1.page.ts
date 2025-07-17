@@ -18,8 +18,7 @@ import { NotificationService } from '../services/notification.service';
 import { ToastController } from '@ionic/angular';
 import { lastValueFrom } from 'rxjs';
 import { IonSearchbar } from '@ionic/angular/standalone'; 
-import {  ActivatedRoute } from '@angular/router';
-
+import { ActivatedRoute } from '@angular/router';
 
 @Component({
   selector: 'app-tab1',
@@ -43,7 +42,7 @@ export class Tab1Page implements OnInit {
   scanner!: ZXingScannerComponent;
   @ViewChild('searchbar', { static: false }) searchbar!: IonSearchbar; 
 
-    mostrarBusqueda = false; 
+  mostrarBusqueda = false; 
   searchTerm = ''; 
   mostrarScanner = false;
   mostrarInput = false;
@@ -60,7 +59,6 @@ export class Tab1Page implements OnInit {
   private router = inject(Router);
   private toastController = inject(ToastController);
   private route = inject(ActivatedRoute);
-
 
   constructor() {
     addIcons({ qrCode, keypad, closeCircle, search });
@@ -82,6 +80,11 @@ export class Tab1Page implements OnInit {
       console.error('Error al parsear usuario:', error);
       await this.mostrarError('Error al cargar usuario');
     }
+  }
+
+  private async notificarCambiosEstado() {
+    this.notificationService.notificarCambios();
+    await new Promise(resolve => setTimeout(resolve, 500));
   }
   
   modoEscaneo() {
@@ -124,6 +127,8 @@ export class Tab1Page implements OnInit {
       } else {
         this.mostrarError(`Equipo no disponible (Estado: ${equipo.estado})`);
       }
+      
+      await this.notificarCambiosEstado();
     } catch (error) {
       console.error('Error:', error);
       this.mostrarError('Error al procesar código QR');
@@ -132,14 +137,32 @@ export class Tab1Page implements OnInit {
 
 private async registrarPrestamoQR(equipo: any) {
   const horaActual = this.obtenerHoraActual();
+  const horaActualNumero = this.obtenerHoraActualNumero();
 
   try {
+    // Verificar si el usuario ya tiene un préstamo QR activo para este equipo
+    const tienePrestamo = await lastValueFrom(
+      this.historialService.tienePrestamoQRActivo(equipo._id, this.usuario._id)
+    );
+
+    if (tienePrestamo) {
+      this.mostrarError('Ya tienes un préstamo QR activo para este equipo');
+      return;
+    }
+
+    // Verificar si el equipo está disponible
+    if (equipo.estado !== 'Disponible') {
+      this.mostrarError(`El equipo no está disponible (Estado: ${equipo.estado})`);
+      return;
+    }
+
     const registro = await lastValueFrom(
       this.historialService.registrarPrestamoQR({
         inventarioId: equipo._id,
         usuarioId: this.usuario._id,
         horaSolicitud: horaActual,
-        tipoPrestamo: 'qr'
+        tipoPrestamo: 'qr',
+        horaInicioNumero: horaActualNumero
       })
     );
 
@@ -155,11 +178,12 @@ private async registrarPrestamoQR(equipo: any) {
 
     await lastValueFrom(
       this.inventarioServices.ActualizarEquipos(equipo._id, { 
-        estado: 'Ocupado' 
+        estado: 'Ocupado',
+        ultimoPrestamoQR: horaActualNumero
       })
     );
 
-    this.notificationService.notificarCambios();
+    await this.notificarCambiosEstado();
     this.mostrarExito(`Préstamo QR registrado para ${equipo.name}`);
   } catch (error) {
     console.error('Error registrando préstamo QR:', error);
@@ -167,64 +191,84 @@ private async registrarPrestamoQR(equipo: any) {
   }
 }
 
+
 private async registrarDevolucionQR(equipo: any) {
   try {
-    const registros = await lastValueFrom(
+    const prestamosQR = await lastValueFrom(
       this.historialService.materialesEnUso()
     );
-    
-    const registro = registros?.find((r: any) => {
-      const inventarioId = typeof r.inventarioId === 'string' 
-        ? r.inventarioId 
-        : r.inventarioId._id;
-        
-      const usuarioRegistro = typeof r.usuarioId === 'string' 
-        ? r.usuarioId 
-        : r.usuarioId?._id;
-        
-      return inventarioId === equipo._id && 
-             usuarioRegistro === this.usuario._id; 
+
+    console.log('🚀 Prestamos activos recibidos:', prestamosQR);
+    console.log('👤 Usuario actual:', this.usuario?._id);
+    console.log('🧩 Equipo escaneado:', equipo?._id);
+
+    const prestamoActivo = prestamosQR.find(p => {
+      // Ignorar registros corruptos
+      if (!p.inventarioId || !p.usuarioId) return false;
+
+      const usuarioId = typeof p.usuarioId === 'object' ? p.usuarioId._id : p.usuarioId;
+      const inventarioId = typeof p.inventarioId === 'object' ? p.inventarioId._id : p.inventarioId;
+
+      const esMismoUsuario = usuarioId === this.usuario._id;
+      const esMismoEquipo = inventarioId === equipo._id;
+      const noDevuelto = !p.horaDevolucion || p.horaDevolucion === '' || p.horaDevolucion === null;
+
+      console.log(`🧪 Evaluando préstamo: usuarioId=${usuarioId}, inventarioId=${inventarioId}, esMismoUsuario=${esMismoUsuario}, esMismoEquipo=${esMismoEquipo}, noDevuelto=${noDevuelto}`);
+
+      return esMismoUsuario && esMismoEquipo && noDevuelto;
     });
 
-    if (!registro) {
-      this.mostrarError('Este equipo está ocupado por otro usuario');
+    if (!prestamoActivo) {
+      this.mostrarError('No se encontró un préstamo activo para este equipo o el préstamo está mal formado.');
       return;
     }
 
-      const horaActual = this.obtenerHoraActual();
-      
-      await lastValueFrom(
-        this.historialService.registrarDevolucionQR(registro._id, {
-          horaDevolucion: horaActual
-        })
-      );
+    const horaActual = this.obtenerHoraActual();
 
-      await this.notificationService.agregarNotificacion({
-        equipoId: equipo._id,
-        equipoNombre: equipo.name,
-        usuarioId: this.usuario._id,
-        usuarioNombre: this.usuario.name,
-        horaInicio: registro.horaSolicitud,
-        horaFin: horaActual,
-        estado: 'Aprobado',
-        tipo: 'qr'
-      });
+await lastValueFrom(
+  this.historialService.registrarDevolucion(prestamoActivo._id, {
+    horaDevolucion: horaActual, // ✅ Se añade horaFin como lo exige el backend
+    estado: 'Disponible'
+  })
+);
 
-      await lastValueFrom(
-        this.inventarioServices.ActualizarEquipos(equipo._id, { 
-          estado: 'Disponible' 
-        })
-      );
+    await this.notificationService.agregarNotificacion({
+      equipoId: equipo._id,
+      equipoNombre: equipo.name,
+      usuarioId: this.usuario._id,
+      usuarioNombre: this.usuario.name,
+      horaInicio: prestamoActivo.horaSolicitud,
+      horaFin: horaActual,
+      estado: 'Aprobado',
+      tipo: 'qr'
+    });
 
-      this.mostrarExito(`Devolución QR registrada para ${equipo.name}`);
-    } catch (error) {
-      console.error('Error registrando devolución QR:', error);
-      this.mostrarError('Error al registrar devolución');
-    }
+    await lastValueFrom(
+      this.inventarioServices.ActualizarEquipos(equipo._id, {
+        estado: 'Disponible',
+        ultimoPrestamoQR: null
+      })
+    );
+
+    await this.notificarCambiosEstado();
+
+    this.mostrarExito(`Devolución registrada para ${equipo.name}`);
+  } catch (error) {
+    console.error('❌ Error registrando devolución:', error);
+    this.mostrarError('Error al registrar devolución');
   }
+}
+
+
+
+
 
   obtenerHoraActual(): string {
     return new Date().toTimeString().slice(0, 5);
+  }
+
+  private obtenerHoraActualNumero(): number {
+    return new Date().getHours();
   }
 
   obtenerIdDeUrl(url: string): string | null {
@@ -235,7 +279,7 @@ private async registrarDevolucionQR(equipo: any) {
     }
   }
 
- buscarPorNumero() {
+  buscarPorNumero() {
     const input = this.Id.trim();
     if (!input) return;
 
@@ -266,8 +310,6 @@ private async registrarDevolucionQR(equipo: any) {
     }
   }
 
-
-
   buscarPorNumeroSerie() {
     const serie = this.searchTerm.trim();
     if (!serie) return;
@@ -283,7 +325,6 @@ private async registrarDevolucionQR(equipo: any) {
       error: () => this.mostrarError('Error buscando equipo')
     });
   }
-
 
   toggleBusqueda() {
     this.mostrarBusqueda = !this.mostrarBusqueda;

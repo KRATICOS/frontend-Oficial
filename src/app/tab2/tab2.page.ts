@@ -90,7 +90,6 @@ export class Tab2Page {
   }
 
   ngOnInit() {
-    this.refrescarComponente();
     this.obtenerEquipos();
     this.obtenerMateriales();
   }

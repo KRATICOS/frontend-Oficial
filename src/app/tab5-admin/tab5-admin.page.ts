@@ -26,16 +26,16 @@ import {
   createOutline,
 } from 'ionicons/icons';
 
-  addIcons({
-    'checkmark-circle':   checkmarkCircle,
-    'close-circle':       closeCircle,
-    'construct-outline':  construct,
-    'notifications-outline': notificationsOutline,
-    'mail-outline':       mailOutline,
-    'log-out-outline':    logOutOutline,
-    'arrow-forward-outline': arrowForwardOutline,
-    'create-outline':     createOutline,
-  });
+addIcons({
+  'checkmark-circle': checkmarkCircle,
+  'close-circle': closeCircle,
+  'construct-outline': construct,
+  'notifications-outline': notificationsOutline,
+  'mail-outline': mailOutline,
+  'log-out-outline': logOutOutline,
+  'arrow-forward-outline': arrowForwardOutline,
+  'create-outline': createOutline,
+});
 
 
 
@@ -45,9 +45,9 @@ import {
   styleUrls: ['./tab5-admin.page.scss'],
   standalone: true,
   imports: [
-    CommonModule, 
+    CommonModule,
     FormsModule,
-    IonContent, IonHeader, IonTitle, IonToolbar, 
+    IonContent, IonHeader, IonTitle, IonToolbar,
     IonCard, IonCardHeader, IonCardTitle, IonCardContent, IonCardSubtitle,
     IonButton, IonAvatar, IonButtons, IonIcon, IonBadge
   ]
@@ -63,16 +63,16 @@ export class Tab5AdminPage implements OnInit {
   private _router = inject(Router);
   private modalCtrl = inject(ModalController);
 
-async ngOnInit(): Promise<void> {
-  const userLS = localStorage.getItem('User');
-  this.usuario = userLS && userLS !== 'undefined'
-    ? JSON.parse(userLS)
-    : { name: '', email: '', imagenes: [] };
+  async ngOnInit(): Promise<void> {
+    const userLS = localStorage.getItem('User');
+    this.usuario = userLS && userLS !== 'undefined'
+      ? JSON.parse(userLS)
+      : { name: '', email: '', imagenes: [] };
 
-  this.usuario.imagenUrl = this.getImagenPerfil(this.usuario); // <-- esta línea es clave
+    this.usuario.imagenUrl = this.getImagenPerfil(this.usuario); // <-- esta línea es clave
 
-  this.subscribirNotificaciones();
-}
+    this.subscribirNotificaciones();
+  }
 
 
   subscribirNotificaciones(): void {
@@ -94,7 +94,7 @@ async ngOnInit(): Promise<void> {
       breakpoints: [0, 0.5, 0.8],
       initialBreakpoint: 0.8
     });
-    
+
     modal.onDidDismiss().then((data) => {
       if (data?.data) {
       }
@@ -102,36 +102,41 @@ async ngOnInit(): Promise<void> {
 
     await modal.present();
   }
-  getImagenPerfil(usuario: any): string {
-  if (
-    usuario.imagenes &&
-    Array.isArray(usuario.imagenes) &&
-    usuario.imagenes.length > 0 &&
-    usuario.imagenes[0].url
-  ) {
-    const imagen = usuario.imagenes[0].url;
 
-    if (imagen.startsWith('http')) {
-      return imagen;
+  getImagenPerfil(usuario: any): string {
+    const supabaseBaseUrl = 'https://gmflswlxghleuauuieis.supabase.co/storage/v1/object/public/inventario/';
+
+    if (
+      usuario.imagenes &&
+      Array.isArray(usuario.imagenes) &&
+      usuario.imagenes.length > 0 &&
+      usuario.imagenes[0].url
+    ) {
+      const imagen = usuario.imagenes[0].url;
+
+      if (imagen.startsWith('http')) {
+        return imagen;
+      }
+
+      // Si es una ruta relativa, asume que viene de Supabase
+      return `${supabaseBaseUrl}${imagen}`;
     }
 
-    return `http://localhost:3001/${imagen}`; 
+    // Imagen por defecto
+    return 'assets/utvcoIMAGEN.jpg';
   }
 
-  return 'assets/utvcoIMAGEN.jpg';
-}
 
-
-onImageError(event: Event): void {
-  const target = event.target as HTMLImageElement;
-  target.src = 'assets/utvcoIMAGEN.jpg';
-}
+  onImageError(event: Event): void {
+    const target = event.target as HTMLImageElement;
+    target.src = 'assets/utvcoIMAGEN.jpg';
+  }
 
   actualizarPerfil(): void {
     this._router.navigate(['/editperfil']);
   }
 
-    addAdm(): void {
+  addAdm(): void {
     this._router.navigate(['/addAdmin']);
   }
 

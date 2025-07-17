@@ -1,11 +1,11 @@
 import { Routes } from '@angular/router';
-import { roleGuard } from './guards/role.guard';
+
+
 
 export const routes: Routes = [
   {
     path: '',
-    redirectTo: 'login',
-    pathMatch: 'full'
+    loadChildren: () => import('./tabs/tabs.routes').then((m) => m.routes),
   },
   {
     path: 'login',
@@ -16,16 +16,8 @@ export const routes: Routes = [
     loadComponent: () => import('./pages/registro/registro.page').then(m => m.RegistroPage)
   },
   {
-    path: 'tabs',
-    loadChildren: () => import('./tabs/tabs.routes').then(m => m.routes),
-    canActivate: [roleGuard],
-    data: { roles: ['user'] }
-  },
-  {
     path: 'tabs-Admin',
     loadChildren: () => import('./tabs-Admin/tabs-Admin.routes').then(m => m.routes),
-    canActivate: [roleGuard],
-    data: { roles: ['admin'] }
   },
   {
     path: 'reserva',
@@ -43,13 +35,10 @@ export const routes: Routes = [
     path: 'addAdmin',
     loadComponent: () => import('./addadmin/addadmin.page').then(m => m.AddadminPage)
   },
-  {
+  { path: 'edit-material/:id', loadComponent: () => import('./edit-material/edit-material.page').then(m => m.EditMaterialPage) }
+  , {
     path: 'edit-material/:id',
     loadComponent: () => import('./edit-material/edit-material.page').then(m => m.EditMaterialPage)
-  },
-  {
-    path: 'no-autorizado',
-    loadComponent: () => import('./pages/no-autorizado/no-autorizado.page').then(m => m.NoAutorizadoPage)
   }
-];
 
+];
