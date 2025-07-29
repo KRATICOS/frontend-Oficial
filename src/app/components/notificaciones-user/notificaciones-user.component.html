@@ -4,13 +4,6 @@
       Notificaciones
       <ion-badge color="danger" *ngIf="unreadCount > 0">{{unreadCount}}</ion-badge>
     </ion-title>
-      <ion-button 
-    *ngIf="notificaciones.length > 0"
-    expand="block" 
-    color="danger" 
-    (click)="clearAll()">
-    Limpiar todas
-  </ion-button>
   </ion-toolbar>
 </ion-header>
 
@@ -48,6 +41,16 @@
         [color]="getColorForEstado(notif.estado)">
         {{notif.estado}}
       </ion-badge>
+
+
+          <ion-button 
+      fill="clear" 
+      color="danger" 
+      slot="end" 
+      (click)="deleteNotification(notif, $event)">
+      <ion-icon slot="icon-only" name="trash"></ion-icon>
+    </ion-button>
+    
     </ion-item>
   </ion-list>
 

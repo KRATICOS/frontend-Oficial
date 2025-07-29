@@ -1,23 +1,55 @@
 <ion-content [fullscreen]="true">
-  <ion-item lines="none">
-    <ion-label>Estado</ion-label>
+  <!-- Barra de búsqueda -->
+  <ion-searchbar 
+    [(ngModel)]="searchTerm"
+    (ionInput)="buscarEquipos($event)"
+    placeholder="Buscar equipos..."
+    animated
+    debounce="300"
+    class="custom-searchbar"
+  ></ion-searchbar>
+
+  <!-- Filtros -->
+  <ion-item lines="none" class="filters-container">
+    <!-- Filtro por categoría -->
     <ion-select
-      name="estado"
-      [(ngModel)]="estadoSeleccionado"
-      (ionChange)="filtrarPorEstado($event.detail.value)"
+      [(ngModel)]="categoriaSeleccionada"
+      (ionChange)="filtrarPorCategoria()"
       interface="popover"
-      slot="end"
-      placeholder="Filtrar"
+      placeholder="Categoría"
       class="custom-select"
     >
-      <ion-select-option value="">Todos</ion-select-option>
+      <ion-select-option value="">Categoria</ion-select-option>
+      <ion-select-option *ngFor="let categoria of categorias" [value]="categoria">
+        {{ categoria }}
+      </ion-select-option>
+    </ion-select>
+
+    <!-- Filtro por estado -->
+    <ion-select
+      [(ngModel)]="estadoSeleccionado"
+      (ionChange)="filtrarPorEstado()"
+      interface="popover"
+      placeholder="Estado"
+      class="custom-select"
+    >
+      <ion-select-option value="">Estado</ion-select-option>
       <ion-select-option value="Disponible">Disponible</ion-select-option>
       <ion-select-option value="Ocupado">Ocupado</ion-select-option>
       <ion-select-option value="En Mantenimiento">En Mantenimiento</ion-select-option>
     </ion-select>
-    <ion-icon name="filter" slot="end" class="filter-icon" style="margin-left: 8px;"></ion-icon>
+
+    <!-- Botón para limpiar filtros -->
+    <ion-button 
+      fill="clear" 
+      (click)="limpiarFiltros()"
+      class="clear-filters"
+    >
+      Limpiar
+    </ion-button>
   </ion-item>
 
+  <!-- Lista de equipos -->
   <ion-grid fixed>
     <ion-row class="ion-justify-content-center ion-padding-bottom">
       <ion-col

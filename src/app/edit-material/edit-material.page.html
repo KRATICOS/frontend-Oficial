@@ -1,12 +1,12 @@
+<!-- edit-material.page.html -->
 <ion-header>
   <ion-toolbar color="primary">
     <ion-buttons slot="start">
-      <ion-back-button defaultHref="/tabs-Admin/tab4"></ion-back-button>
+      <ion-back-button defaultHref="/tabs-Admin/tab3"></ion-back-button>
     </ion-buttons>
 
     <ion-title>Actualizar equipo</ion-title>
 
-    <!-- botón de eliminar -->
     <ion-buttons slot="end">
       <ion-button color="danger" (click)="confirmarEliminacion()">
         <ion-icon slot="icon-only" name="trash"></ion-icon>
@@ -20,20 +20,11 @@
     <ion-row class="ion-justify-content-center">
       <ion-col size="12" size-md="10" size-lg="8">
 
-        <!-- Card principal -->
         <ion-card class="register-card animate-fade">
           <ion-card-header>
             <ion-card-title class="ion-text-center">Actualizar equipo</ion-card-title>
 
-            <!-- Carrusel (solo si hay imágenes) -->
-            <swiper-container
-              class="custom-swiper"
-              slides-per-view="1"
-              space-between="10"
-              navigation="true"
-              pagination="true"
-              *ngIf="imagenesPreview.length"
-            >
+            <swiper-container *ngIf="imagenesPreview?.length" class="custom-swiper" slides-per-view="1" space-between="10" navigation="true" pagination="true">
               <swiper-slide *ngFor="let img of imagenesPreview; let i = index">
                 <div class="slide-wrapper">
                   <img [src]="img" class="slide-image" />
@@ -42,60 +33,39 @@
               </swiper-slide>
             </swiper-container>
 
-            <!-- Botón para añadir imagen -->
             <ion-button size="small" expand="block" fill="outline" class="add-img-btn" (click)="abrirSelector()">
               <ion-icon name="add" slot="start"></ion-icon>
               Añadir imagen
-              <span class="count-badge" *ngIf="imagenesPreview.length">
+              <span class="count-badge" *ngIf="imagenesPreview?.length">
                 {{ imagenesPreview.length }}/5
               </span>
             </ion-button>
 
-            <!-- input hidden real -->
             <input id="fileInput" type="file" accept="image/*" multiple hidden (change)="onFileSelected($event)" />
           </ion-card-header>
 
-          <!-- Formulario reactivo -->
           <ion-card-content>
-            <form [formGroup]="equipoForm" (ngSubmit)="actualizarEquipo()" novalidate>
+            <form [formGroup]="equipoForm" (ngSubmit)="actualizarEquipo()" novalidate *ngIf="equipoForm">
               <ion-list lines="full" class="form-list">
 
                 <ion-item [class.ion-invalid]="equipoForm.get('name')?.invalid && equipoForm.get('name')?.touched">
                   <ion-icon name="cube" slot="start"></ion-icon>
-                  <ion-input
-                    placeholder="Nombre del equipo"
-                    formControlName="name"
-                    required
-                  ></ion-input>
+                  <ion-input placeholder="Nombre del equipo" formControlName="name" required></ion-input>
                 </ion-item>
 
                 <ion-item [class.ion-invalid]="equipoForm.get('model')?.invalid && equipoForm.get('model')?.touched">
                   <ion-icon name="pricetag" slot="start"></ion-icon>
-                  <ion-input
-                    placeholder="Modelo"
-                    formControlName="model"
-                    required
-                  ></ion-input>
+                  <ion-input placeholder="Modelo" formControlName="model" required></ion-input>
                 </ion-item>
 
                 <ion-item [class.ion-invalid]="equipoForm.get('description')?.invalid && equipoForm.get('description')?.touched">
                   <ion-icon name="reader" slot="start"></ion-icon>
-                  <ion-textarea
-                    autoGrow="true"
-                    placeholder="Descripción"
-                    formControlName="description"
-                    required
-                  ></ion-textarea>
+                  <ion-textarea autoGrow="true" placeholder="Descripción" formControlName="description" required></ion-textarea>
                 </ion-item>
 
                 <ion-item [class.ion-invalid]="equipoForm.get('categoria')?.invalid && equipoForm.get('categoria')?.touched">
                   <ion-icon name="albums" slot="start"></ion-icon>
-                  <ion-select
-                    placeholder="Categoría"
-                    formControlName="categoria"
-                    interface="popover"
-                    required
-                  >
+                  <ion-select placeholder="Categoría" formControlName="categoria" interface="popover" required>
                     <ion-select-option *ngFor="let cat of categorias" [value]="cat">
                       {{ cat }}
                     </ion-select-option>
@@ -104,14 +74,9 @@
 
                 <ion-item [class.ion-invalid]="equipoForm.get('nseries')?.invalid && equipoForm.get('nseries')?.touched">
                   <ion-icon name="barcode" slot="start"></ion-icon>
-                  <ion-input
-                    placeholder="Número de serie"
-                    formControlName="nseries"
-                    required
-                  ></ion-input>
+                  <ion-input placeholder="Número de serie" formControlName="nseries" required></ion-input>
                 </ion-item>
 
-                <!-- Chips de estado -->
                 <div class="estado-wrapper ion-margin-top">
                   <ion-label class="estado-label"><strong>Estado</strong></ion-label>
                   <div class="estado-chips">
@@ -139,7 +104,6 @@
             </form>
           </ion-card-content>
         </ion-card>
-
       </ion-col>
     </ion-row>
   </ion-grid>

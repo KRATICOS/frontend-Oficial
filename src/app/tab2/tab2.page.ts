@@ -1,4 +1,4 @@
-import { Component, CUSTOM_ELEMENTS_SCHEMA, inject } from '@angular/core';
+import { Component, CUSTOM_ELEMENTS_SCHEMA, inject, ViewChild } from '@angular/core';
 import {
   IonButton,
   IonCol,
@@ -16,7 +16,8 @@ import {
   IonLabel,
   IonText,
   IonSelect,
-  IonSelectOption
+  IonSelectOption,
+  IonSearchbar
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
 import { ellipsisVerticalOutline, filter } from 'ionicons/icons';
@@ -45,6 +46,7 @@ addIcons({
   logOutOutline,
   arrowForwardOutline
 });
+
 @Component({
   selector: 'app-tab2',
   templateUrl: './tab2.page.html',
@@ -69,15 +71,28 @@ addIcons({
     IonRow,
     IonContent,
     IonSelect,
-    IonSelectOption
+    IonSelectOption,
+    IonSearchbar
   ]
 })
 export class Tab2Page {
+    @ViewChild('categoriaSelect', { static: false }) categoriaSelect!: IonSelect;
+
   equipos: any[] = [];
-  estadoSeleccionado = '';
   materiales: Inventario[] = [];
-  categorias: string[] = ['Herramientas', 'Electrónica', 'Mecánica', 'Laboratorio', 'Multimedia'];
-  categoriaSeleccionada: string = '';
+  equiposOriginales: any[] = [];
+  searchTerm = '';
+  estadoSeleccionado = '';
+  categoriaSeleccionada = '';
+
+  categorias = [
+    'Herramientas',
+    'Proyectores',
+    'Mecánica',
+    'Componentes',
+    'Laboratorio',
+    'Instrumento de medicion'
+  ];
 
   private inventarioServices = inject(InventarioService);
   private router = inject(Router);
@@ -90,22 +105,21 @@ export class Tab2Page {
   }
 
   ngOnInit() {
-    this.refrescarComponente();
     this.obtenerEquipos();
     this.obtenerMateriales();
   }
 
-  refrescarComponente() {
-    const currentUrl = this.router.url;
-    this.router.navigateByUrl('/', { skipLocationChange: true }).then(() => {
-      this.router.navigate([currentUrl]);
-    });
+    ionViewDidEnter() {
+    setTimeout(() => {
+      this.categoriaSelect?.open();
+    }, 300);
   }
 
   obtenerEquipos() {
     this.inventarioServices.Equipos().subscribe({
       next: (res) => {
         this.equipos = res;
+        this.equiposOriginales = [...res];
         console.log('Equipos cargados:', this.equipos);
       },
       error: (err) => {
@@ -114,27 +128,54 @@ export class Tab2Page {
     });
   }
 
-  filtrarPorEstado(estado: string) {
-    this.estadoSeleccionado = estado;
+  buscarEquipos(event: any) {
+    this.searchTerm = event.target.value.toLowerCase();
+    this.aplicarFiltros();
+  }
 
-    if (!estado) {
-      this.obtenerEquipos();
-      return;
+  aplicarFiltros() {
+    let equiposFiltrados = [...this.equiposOriginales];
+
+    // Filtro por categoría
+    if (this.categoriaSeleccionada) {
+      equiposFiltrados = equiposFiltrados.filter(
+        e => e.categoria?.toLowerCase() === this.categoriaSeleccionada.toLowerCase()
+      );
     }
 
-    const estadoNormalizado = estado.trim().toLowerCase();
+    // Filtro por estado
+    if (this.estadoSeleccionado) {
+      equiposFiltrados = equiposFiltrados.filter(
+        e => e.estado?.toLowerCase() === this.estadoSeleccionado.toLowerCase()
+      );
+    }
 
-    this.inventarioServices.Equipos().subscribe({
-      next: (res) => {
-        this.equipos = res.filter(e =>
-          e.estado && e.estado.trim().toLowerCase() === estadoNormalizado
-        );
-        console.log(`Filtrado local por ${estado}:`, this.equipos);
-      },
-      error: (err) => {
-        console.error(`Error al filtrar por ${estado}:`, err);
-      }
-    });
+    // Filtro por búsqueda
+    if (this.searchTerm) {
+      equiposFiltrados = equiposFiltrados.filter(e =>
+        e.name?.toLowerCase().includes(this.searchTerm) ||
+        e.description?.toLowerCase().includes(this.searchTerm) ||
+        e.model?.toLowerCase().includes(this.searchTerm) ||
+        e.nseries?.toLowerCase().includes(this.searchTerm)
+      );
+    }
+
+    this.equipos = equiposFiltrados;
+  }
+
+  limpiarFiltros() {
+    this.categoriaSeleccionada = '';
+    this.estadoSeleccionado = '';
+    this.searchTerm = '';
+    this.equipos = [...this.equiposOriginales];
+  }
+
+  filtrarPorCategoria() {
+    this.aplicarFiltros();
+  }
+
+  filtrarPorEstado() {
+    this.aplicarFiltros();
   }
 
   ionViewWillEnter() {
@@ -161,10 +202,6 @@ export class Tab2Page {
         }
       });
     }
-  }
-
-  onCategoriaChange() {
-    this.obtenerMateriales();
   }
 
   async presentToast(message: string, color: 'success' | 'warning' | 'danger') {

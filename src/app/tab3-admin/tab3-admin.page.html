@@ -1,51 +1,72 @@
 <ion-content class="ion-padding">
 
+  <ion-searchbar 
+    [(ngModel)]="searchTerm"
+    (ionInput)="buscarEquipos($event)"
+    placeholder="Buscar equipos..."
+    animated
+    debounce="300"
+    class="custom-searchbar"
+  ></ion-searchbar>
+
+
   <!-- Filtro por estado -->
-  <ion-item lines="none">
-    <ion-label>Estado</ion-label>
+  <ion-item lines="none" class="filters-container">
+    <!-- Filtro por categoría -->
     <ion-select
-      name="estado"
-      [(ngModel)]="estadoSeleccionado"
-      (ionChange)="filtrarPorEstado($event.detail.value)"
+      [(ngModel)]="categoriaSeleccionada"
+      (ionChange)="filtrarPorCategoria()"
       interface="popover"
-      slot="end"
-      placeholder="Filtrar"
+      placeholder="Categoría"
       class="custom-select"
     >
-      <ion-select-option value="">Todos</ion-select-option>
+      <ion-select-option value="">Categoria</ion-select-option>
+      <ion-select-option *ngFor="let categoria of categorias" [value]="categoria">
+        {{ categoria }}
+      </ion-select-option>
+    </ion-select>
+
+    <!-- Filtro por estado -->
+    <ion-select
+      [(ngModel)]="estadoSeleccionado"
+      (ionChange)="filtrarPorEstado()"
+      interface="popover"
+      placeholder="Estado"
+      class="custom-select"
+    >
+      <ion-select-option value="">Estado</ion-select-option>
       <ion-select-option value="Disponible">Disponible</ion-select-option>
       <ion-select-option value="Ocupado">Ocupado</ion-select-option>
       <ion-select-option value="En Mantenimiento">En Mantenimiento</ion-select-option>
     </ion-select>
-    <ion-icon name="filter" slot="end" class="filter-icon" style="margin-left: 8px;"></ion-icon>
+
+    <!-- Botón para limpiar filtros -->
+    <ion-button 
+      fill="clear" 
+      (click)="limpiarFiltros()"
+      class="clear-filters"
+    >
+      Limpiar
+    </ion-button>
   </ion-item>
 
-  <!-- Buscador -->
-  <ion-searchbar
-    [(ngModel)]="searchTerm" 
-    (ionInput)="filtrarEquipos()"
-    (keyup.enter)="filtrarEquipos()"
-    placeholder="Buscar por palabra clave"
-  ></ion-searchbar>
+  <!-- Barra de búsqueda -->
+
 
   <!-- Grid de equipos -->
   <ion-grid>
     <ion-row>
       <ion-col size="12" size-md="6" size-lg="4" *ngFor="let equipo of equipos">
         <ion-card class="ion-no-margin ion-no-padding">
-
-          <!-- Botón de eliminar -->
           <ion-button 
             fill="clear" 
             color="danger" 
             size="small" 
             style="position: absolute; top: 8px; left: 8px; z-index: 10;" 
-            (click)="eliminarEquipo(equipo._id)"
-          >
+            (click)="eliminarEquipo(equipo._id)">
             <ion-icon slot="icon-only" name="trash-outline" style="font-size: 24px;"></ion-icon>
           </ion-button>
 
-          <!-- Imagen del equipo -->
           <div class="image-container">
             <ion-img
               *ngIf="equipo.imagenes?.length"
@@ -53,47 +74,26 @@
               alt="Imagen del equipo"
               class="equipment-image"
             ></ion-img>
-
-            <!-- Estado -->
             <ion-badge
-              [color]="
-                equipo.estado === 'Disponible'
-                  ? 'success'
-                  : equipo.estado === 'Ocupado'
-                  ? 'warning'
-                  : 'danger'
-              "
+              [color]="getEstadoColor(equipo.estado)"
               class="state-badge"
+              style="position: absolute; top: 8px; right: 8px; z-index: 10;"
             >
               {{ equipo.estado }}
             </ion-badge>
           </div>
 
-          <!-- Encabezado del card -->
           <ion-card-header>
-            <ion-card-title>{{ equipo.name }} ({{ equipo.model }})</ion-card-title>
+            <ion-card-title>{{ equipo.name }}</ion-card-title>
             <ion-card-subtitle>Categoría: {{ equipo.categoria }}</ion-card-subtitle>
           </ion-card-header>
 
-          <!-- Contenido -->
           <ion-card-content>
-            <p class="description">
-              <strong>Descripción:</strong> {{ equipo.description }}
-            </p>
+            <p><strong>Descripción:</strong> {{ equipo.description }}</p>
+            <p><strong>Modelo:</strong> {{ equipo.model }}</p>
+            <p><strong>Número de serie:</strong> {{ equipo.nseries }}</p>
 
-            <p class="model">
-              <strong>Modelo:</strong> {{ equipo.model }}
-            </p>
-
-            <ion-item lines="none">
-              <ion-label>
-                <strong>N.º de serie</strong>
-              </ion-label>
-              <ion-text>{{ equipo.nseries }}</ion-text>
-            </ion-item>
-
-            <!-- Código QR -->
-            <div *ngIf="equipo.codigoQR" class="mt-3 ion-text-center">
+            <div *ngIf="equipo.codigoQR" class="ion-text-center ion-margin-top">
               <ion-text color="medium">
                 <strong>Código QR</strong>
               </ion-text>
@@ -104,24 +104,28 @@
                 style="width: 100px; height: 100px; margin: 0 auto;"
               ></ion-img>
 
-                <ion-button 
-                  expand="block" 
-                  fill="outline" 
-                  color="secondary" 
-                  (click)="imprimirQR(equipo.codigoQR)">
-                  Imprimir QR
-                </ion-button>
+              <ion-button 
+                expand="block" 
+                fill="outline" 
+                color="secondary" 
+                (click)="imprimirQR(equipo.codigoQR)">
+                Imprimir QR
+              </ion-button>
             </div>
 
-            <!-- Botón Editar -->
             <ion-button fill="clear" color="medium" (click)="editarMaterial(equipo._id)">
               <ion-icon slot="start" name="create-outline"></ion-icon>
               Editar
             </ion-button>
 
-            <!-- Botón Ver Detalles -->
-            <ion-button expand="block" color="primary" (click)="verDetalles(equipo)">
-              Ver Detalles
+            <ion-button
+              expand="block"
+              fill="solid"
+              shape="round"
+              (click)="verDetalles(equipo._id)"
+              class="details-button"
+            >
+              Reservar
             </ion-button>
           </ion-card-content>
         </ion-card>

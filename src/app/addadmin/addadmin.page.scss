@@ -49,3 +49,19 @@
   flex-direction: column;
   gap: 12px;
 }
+
+ion-button {
+  margin-top: 8px;
+  --border-radius: 8px;
+  font-weight: 600;
+  text-transform: none;
+
+  &[color="primary"] {
+    --box-shadow: 0 4px 8px rgba(var(--ion-color-primary-rgb), 0.3);
+  }
+
+  ion-icon {
+    font-size: 1.2em;
+  }
+}
+

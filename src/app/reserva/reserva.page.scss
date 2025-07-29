@@ -68,6 +68,8 @@ ion-chip {
   flex-direction: column;
   gap: 12px;
   margin-top: 20px;
+  margin-bottom: 24px; /* asegura visibilidad en PC */
+  align-items: center; /* centra en pantallas grandes también */
 }
 
 /* Estilos de tarjetas */
@@ -85,6 +87,7 @@ ion-card {
 
   .action-buttons {
     flex-direction: row;
+    flex-wrap: wrap; /* permite que botones salten de línea si no caben */
     justify-content: center;
     gap: 20px;
   }

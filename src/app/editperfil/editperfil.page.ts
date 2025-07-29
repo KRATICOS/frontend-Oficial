@@ -30,14 +30,16 @@ import { RouterModule, Router } from '@angular/router';
 import { ServiceService } from 'src/app/services/service.service';
 import { Usuario } from 'src/app/interface';
 import { addIcons } from 'ionicons';
-import { cameraOutline, checkmarkCircle, closeCircle, construct, imageOutline, navigate, save, trash } from 'ionicons/icons';
+import { cameraOutline, checkmarkCircle, closeCircle, construct, imageOutline, navigate, save, trash,close } from 'ionicons/icons';
+
+
 
 
 addIcons({
   checkmarkCircle,
   closeCircle,
   construct,
-  cameraOutline, imageOutline // nuevo ícono agregado
+  cameraOutline, imageOutline,trash,save,close, // nuevo ícono agregado
 });
 
 
@@ -176,76 +178,77 @@ export class EditperfilPage implements OnInit {
     }
   }
 
+
   async onSubmit() {
-    if (this.userForm.invalid) {
-      const toast = await this.toastController.create({
-        message: 'Por favor complete todos los campos requeridos.',
-        duration: 2000,
-        color: 'danger',
-      });
-      toast.present();
-      return;
-    }
+  if (this.userForm.invalid) {
+    const toast = await this.toastController.create({
+      message: 'Por favor complete todos los campos requeridos.',
+      duration: 2000,
+      color: 'danger',
+    });
+    toast.present();
+    return;
+  }
 
-    const formValue = this.userForm.getRawValue();
+  const formValue = this.userForm.getRawValue();
+  const updateData: any = {
+    name: formValue.name,
+    email: formValue.email
+  };
 
-    const updateData: any = {
-      name: formValue.name,
-      email: formValue.email
-    };
+  if (formValue.password) updateData.password = formValue.password;
 
-    if (formValue.password) updateData.password = formValue.password;
+  if (!this.isAdmin) {
+    updateData.tel = formValue.tel;
+    updateData.matricula = formValue.matricula;
+    updateData.grupo = formValue.grupo;
+  }
 
-    if (!this.isAdmin) {
-      updateData.tel = formValue.tel;
-      updateData.matricula = formValue.matricula;
-      updateData.grupo = formValue.grupo;
-    }
-
-    let requestObservable;
+  try {
+    let response: any;
 
     if (this.selectedFiles.length > 0) {
       const formData = new FormData();
       Object.keys(updateData).forEach(key => formData.append(key, updateData[key]));
-
       this.selectedFiles.forEach(file => formData.append('files', file));
-
-      requestObservable = this.serviceService.updateUser(this.userId, formData, true); // <-- true = multipart
+      
+      response = await this.serviceService.updateUser(this.userId, formData, true).toPromise();
     } else {
-      requestObservable = this.serviceService.updateUser(this.userId, updateData); // <-- JSON plano
+      response = await this.serviceService.updateUser(this.userId, updateData).toPromise();
     }
 
-    requestObservable.subscribe({
-      next: async (response) => {
-        const updatedUser = response.user || response;
+    // Manejo más robusto de la respuesta
+    const updatedUser = response?.user || response?.data || response;
+    
+    if (!updatedUser) {
+      throw new Error('No se recibieron datos actualizados del servidor');
+    }
 
-        const currentUserData = JSON.parse(localStorage.getItem('User') || '{}');
-        const mergedData = { ...currentUserData, ...updatedUser };
+    // Actualizar localStorage completamente
+    localStorage.setItem('User', JSON.stringify(updatedUser));
+    this.currentUser = updatedUser;
 
-        localStorage.setItem('User', JSON.stringify(mergedData));
-
-        const toast = await this.toastController.create({
-          message: 'Perfil actualizado correctamente',
-          duration: 2000,
-          color: 'success',
-        });
- 
-        toast.present();
-        this.redireccionarPorRol(updatedUser.rol);
-
-      },
-      error: async (error) => {
-        console.error('Error al actualizar perfil:', error);
-        const toast = await this.toastController.create({
-          message: 'Error al actualizar el perfil',
-          duration: 2000,
-          color: 'danger',
-        });
-        toast.present();
-      }
+    const toast = await this.toastController.create({
+      message: 'Perfil actualizado correctamente',
+      duration: 2000,
+      color: 'success',
     });
-  }
+    toast.present();
+    
+    this.redireccionarPorRol(updatedUser.rol);
 
+  } catch (error: any) {
+    console.error('Error al actualizar perfil:', error);
+    const errorMessage = error.error?.message || error.message || 'Error desconocido al actualizar el perfil';
+    
+    const toast = await this.toastController.create({
+      message: errorMessage,
+      duration: 3000,
+      color: 'danger',
+    });
+    toast.present();
+  }
+}
 
   redireccionarPorRol(rol: string) {
   if (rol === 'admin') {
@@ -256,7 +259,12 @@ export class EditperfilPage implements OnInit {
 }
 
 
-  cancel() {
+cancel() {
+  // Usamos el rol del usuario actual almacenado en la propiedad
+  if (this.currentUser?.rol === 'admin') {
+    this.router.navigate(['/tabs-Admin/tab5']);
+  } else {
     this.router.navigate(['/tabs/tab3']);
   }
+}
 }

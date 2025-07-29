@@ -1,4 +1,4 @@
-import { Component, inject, OnInit } from '@angular/core';
+import { Component, inject, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 
@@ -11,18 +11,39 @@ import {
   IonLabel,
   IonButton,
   IonText,
-  IonInput, IonCard, IonCardHeader, IonAvatar, IonCardTitle, IonCardSubtitle, IonCardContent, IonIcon
+  IonInput,
+  IonCard,
+  IonCardHeader,
+  IonAvatar,
+  IonCardTitle,
+  IonCardSubtitle,
+  IonCardContent,
+  IonIcon
 } from '@ionic/angular/standalone';
 import { RouterLink, RouterModule, Router } from '@angular/router';
 import { ServiceService } from 'src/app/services/service.service';
 import { Usuario } from 'src/app/interface';
+
+import { addIcons } from 'ionicons';
+import {  eyeOutline } from 'ionicons/icons';
+
+    addIcons({eyeOutline});
+  
+
 
 @Component({
   selector: 'app-login',
   templateUrl: './login.page.html',
   styleUrls: ['./login.page.scss'],
   standalone: true,
-  imports: [IonIcon, IonCardContent, IonCardSubtitle, IonCardTitle, IonAvatar, IonCardHeader, IonCard,
+  imports: [
+    IonIcon,
+    IonCardContent,
+    IonCardSubtitle,
+    IonCardTitle,
+    IonAvatar,
+    IonCardHeader,
+    IonCard,
     CommonModule,
     FormsModule,
     IonContent,
@@ -34,27 +55,38 @@ import { Usuario } from 'src/app/interface';
     IonText
   ]
 })
-export class LoginPage {
+export class LoginPage implements OnInit, OnDestroy {
 
   email: string = '';
   password: string = '';
   showPassword: boolean = false;
   passwordFieldType: string = 'password';
 
+  currentImage: number = 0;
+  currentTime: string = ''; // ⏰ nueva propiedad para la hora
+  private intervalId: any;
+
   private authService = inject(ServiceService);
   private router = inject(Router);
 
-  constructor() { }
+  constructor() {}
 
   User: Usuario[] = [];
 
   ngOnInit() {
-    setInterval(() => {
-      this.currentImage = (this.currentImage + 1) % this.carouselImages.length;
-    }, 3000); // cada 3 segundos
+
   }
 
-  currentImage: number = 0;
+  ngOnDestroy() {
+    if (this.intervalId) {
+      clearInterval(this.intervalId);
+    }
+  }
+
+  updateTime() {
+    const now = new Date();
+    this.currentTime = now.toLocaleTimeString();
+  }
 
   togglePasswordVisibility() {
     this.showPassword = !this.showPassword;
@@ -65,10 +97,10 @@ export class LoginPage {
     initialSlide: 0,
     speed: 1000,
     autoplay: {
-      delay: 5000, // 5 segundos
+      delay: 5000,
     },
     loop: true,
-    effect: 'fade', // Efecto de transición suave
+    effect: 'fade',
     fadeEffect: {
       crossFade: true
     }
@@ -94,11 +126,9 @@ export class LoginPage {
           console.log('Login exitoso', response);
           localStorage.setItem('token', response.token);
           localStorage.setItem('User', JSON.stringify(response.usuario));
-          localStorage.setItem('rol', response.usuario.rol);
 
-          const rol = response.usuario.rol; 
-
-          if (rol === 'admin') {
+          const rol = response.usuario.rol;
+          if (rol === 'admin' || rol === 'superadmin') {
             this.router.navigate(['/tabs-Admin/tab5']);
           } else {
             this.router.navigate(['/tabs/tab3']);
@@ -109,7 +139,4 @@ export class LoginPage {
         }
       });
   }
-
-
-
 }

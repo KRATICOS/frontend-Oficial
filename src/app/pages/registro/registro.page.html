@@ -24,44 +24,101 @@
 
       <ion-item>
         <ion-label position="floating">Nombre</ion-label>
-        <ion-input formControlName="name"></ion-input>
+        <ion-input formControlName="name" required></ion-input>
+        <ion-text color="danger" *ngIf="userForm.get('name')?.invalid && userForm.get('name')?.touched">
+          Nombre requerido
+        </ion-text>
       </ion-item>
 
       <ion-item>
         <ion-label position="floating">Correo</ion-label>
-        <ion-input type="email" formControlName="email"></ion-input>
+        <ion-input type="email" formControlName="email" required></ion-input>
+        <ion-text color="danger" *ngIf="userForm.get('email')?.invalid && userForm.get('email')?.touched">
+          Ingresa un correo válido
+        </ion-text>
       </ion-item>
 
       <ion-item>
         <ion-label position="floating">Contraseña</ion-label>
-        <ion-input type="password" formControlName="password"></ion-input>
+        <ion-input [type]="passwordFieldType" formControlName="password" required></ion-input>
+                    <ion-button fill="clear" slot="end" (click)="togglePasswordVisibility()">
+              <ion-icon [name]="showPassword ? 'eye-outline' : 'eye-outline'"></ion-icon>
+            </ion-button>
+        <ion-text color="danger" *ngIf="userForm.get('password')?.invalid && userForm.get('password')?.touched">
+          Mínimo 6 caracteres
+        </ion-text>
       </ion-item>
 
       <ion-item>
         <ion-label position="floating">Teléfono</ion-label>
-        <ion-input type="tel" formControlName="tel"></ion-input>
+        <ion-input type="tel" formControlName="tel" required></ion-input>
+        <ion-text color="danger" *ngIf="userForm.get('tel')?.invalid && userForm.get('tel')?.touched">
+          10 dígitos requeridos
+        </ion-text>
       </ion-item>
-
 
       <ion-item *ngIf="userForm.get('rol')?.value === 'user'">
         <ion-label position="floating">Matrícula</ion-label>
-        <ion-input formControlName="matricula"></ion-input>
+        <ion-input formControlName="matricula" required></ion-input>
       </ion-item>
 
       <ion-item *ngIf="userForm.get('rol')?.value === 'user'">
         <ion-label position="floating">Grupo</ion-label>
-        <ion-input formControlName="grupo"></ion-input>
+        <ion-input formControlName="grupo" required></ion-input>
+      </ion-item>
+
+      <ion-item lines="none">
+        <ion-checkbox slot="start" [(ngModel)]="terminosAceptados" [ngModelOptions]="{standalone: true}"></ion-checkbox>
+        <ion-label>
+          Acepto los 
+          <a (click)="mostrarTerminosCondiciones()" class="terms-link">Términos y Condiciones</a>
+        </ion-label>
       </ion-item>
 
       <div class="btn-group">
-        <ion-button expand="block" color="primary" type="submit" [disabled]="userForm.invalid">
+        <ion-button expand="block" color="primary" type="submit"
+          [disabled]="userForm.invalid || !terminosAceptados">
           Crear Usuario
         </ion-button>
-        <ion-button expand="block" color="medium" type="button" (click)="userForm.reset(); selectedFiles=[];">
+        <ion-button expand="block" color="medium" type="button"
+          (click)="cancelarRegistro()">
           Cancelar
         </ion-button>
       </div>
-
     </form>
   </ion-card>
+
+  <ion-modal [isOpen]="mostrandoTerminos" (ionModalDidDismiss)="cerrarModal()">
+    <ng-template>
+      <ion-header>
+        <ion-toolbar>
+          <ion-title>Términos y Condiciones</ion-title>
+          <ion-buttons slot="end">
+            <ion-button (click)="cerrarModal()">
+              <ion-icon name="close-circle"></ion-icon>
+            </ion-button>
+          </ion-buttons>
+        </ion-toolbar>
+      </ion-header>
+      <ion-content class="ion-padding">
+        <h2>1. Aceptación de los Términos</h2>
+        <p>Al registrarte en nuestra plataforma, aceptas cumplir con estos términos y condiciones...</p>
+        
+        <h2>2. Uso del Servicio</h2>
+        <p>El servicio está destinado para uso personal y no comercial...</p>
+        
+        <h2>3. Privacidad de Datos</h2>
+        <p>Respetamos tu privacidad y protegemos tus datos personales...</p>
+        
+        <div class="modal-buttons">
+          <ion-button expand="block" color="primary" (click)="aceptarTerminos()">
+            Aceptar
+          </ion-button>
+          <ion-button expand="block" color="danger" (click)="rechazarTerminos()">
+            Rechazar
+          </ion-button>
+        </div>
+      </ion-content>
+    </ng-template>
+  </ion-modal>
 </ion-content>

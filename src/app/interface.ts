@@ -15,6 +15,7 @@ export interface Inventario {
   imagenes: Imagen[];
   nseries: string;
   codigoQR?: string;
+  ultimoPrestamoQR?: number | null;
 }
 
 
@@ -39,6 +40,7 @@ export interface Registro {
   horaDevolucion?: string;
   estado: 'Disponible' | 'Ocupado' | 'En Mantenimiento';
   observaciones?: string;
-  tipoPrestamo?: 'qr' | 'manual' | 'reserva';
+  tipoPrestamo?: 'qr' | 'reserva' | 'nserie';
+  fecha?: string;
 }
 

@@ -1,23 +1,26 @@
-<ion-content>
-  <ion-header>
-    <ion-toolbar>
-      <ion-title>Notificaciones</ion-title>
-    </ion-toolbar>
-    <ion-toolbar>
-      <ion-segment (ionChange)="segmentChanged($event)" [value]="segmento">
-        <ion-segment-button value="pendientes">
-          <ion-label>Pendientes</ion-label>
-        </ion-segment-button>
-        <ion-segment-button value="aprobadas">
-          <ion-label>Aprobadas</ion-label>
-        </ion-segment-button>
-        <ion-segment-button value="rechazadas">
-          <ion-label>Rechazadas</ion-label>
-        </ion-segment-button>
-      </ion-segment>
-    </ion-toolbar>
-  </ion-header>
+<ion-header>
+  <ion-toolbar>
+    <ion-title>Notificaciones</ion-title>
+  </ion-toolbar>
+  <ion-toolbar>
+    <ion-segment [(ngModel)]="segmento" (ionChange)="segmentChanged($event)">
+      <ion-segment-button value="pendientes">
+        <ion-label>Pendientes</ion-label>
+      </ion-segment-button>
+      <ion-segment-button value="aprobadas">
+        <ion-label>Aprobadas</ion-label>
+      </ion-segment-button>
+      <ion-segment-button value="rechazadas">
+        <ion-label>Rechazadas</ion-label>
+      </ion-segment-button>
+      <ion-segment-button value="qr">
+        <ion-label>QR</ion-label>
+      </ion-segment-button>
+    </ion-segment>
+  </ion-toolbar>
+</ion-header>
 
+<ion-content>
   <ion-list>
     <ion-item *ngFor="let notif of notificaciones">
       <ion-avatar slot="start" *ngIf="notif.usuarioImagen">
@@ -34,32 +37,39 @@
       <ion-badge [color]="getColorEstado(notif.estado)" slot="end">
         {{notif.estado}}
       </ion-badge>
-      
-      <!-- Botones de acción -->
-      <div slot="end" class="action-buttons">
-        <!-- Botón Aprobar (solo para pendientes) -->
-        <ion-button *ngIf="notif.estado === 'Pendiente'" 
-                   fill="clear" 
-                   color="success" 
-                   (click)="aprobar(notif)">
-          <ion-icon name="checkmark-circle" slot="icon-only"></ion-icon>
-        </ion-button>
-        
-        <!-- Botón Rechazar (solo para pendientes) -->
-        <ion-button *ngIf="notif.estado === 'Pendiente'" 
-                   fill="clear" 
-                   color="danger" 
-                   (click)="rechazar(notif)">
-          <ion-icon name="close-circle" slot="icon-only"></ion-icon>
-        </ion-button>
-        
-        <!-- Botón Eliminar (siempre visible) -->
-        <ion-button fill="clear" 
-                   color="medium" 
-                   (click)="eliminar(notif._id)">
-          <ion-icon name="trash" color="danger"></ion-icon>
-        </ion-button>
-      </div>
+
+ <ion-buttons slot="end">
+  <!-- Botones para reservas pendientes (que no sean devoluciones) -->
+  <ng-container *ngIf="notif.estado === 'Pendiente' && notif.tipo !== 'devolucion'">
+    <ion-button fill="clear" color="success" (click)="aprobar(notif)">
+      <ion-icon name="checkmark-circle" slot="icon-only"></ion-icon>
+    </ion-button>
+    <ion-button fill="clear" color="danger" (click)="rechazar(notif)">
+      <ion-icon name="close-circle" slot="icon-only"></ion-icon>
+    </ion-button>
+  </ng-container>
+
+  <!-- Botones para devoluciones pendientes -->
+  <ng-container *ngIf="notif.estado === 'Pendiente' && notif.tipo === 'devolucion'">
+    <ion-button fill="clear" color="success" (click)="manejarDevolucion(notif, true)">
+      <ion-icon name="checkmark-circle" slot="icon-only"></ion-icon>
+    </ion-button>
+    <ion-button fill="clear" color="danger" (click)="manejarDevolucion(notif, false)">
+      <ion-icon name="close-circle" slot="icon-only"></ion-icon>
+    </ion-button>
+  </ng-container>
+
+  <!-- Botón eliminar (si aplica) -->
+  <ion-button *ngIf="puedeEliminar(notif)" fill="clear" color="danger" (click)="eliminar(notif._id)">
+    <ion-icon name="trash" slot="icon-only"></ion-icon>
+  </ion-button>
+</ion-buttons>
     </ion-item>
   </ion-list>
+
+  <!-- Empty state -->
+  <div *ngIf="notificaciones.length === 0" class="empty-state">
+    <ion-icon name="notifications-off" size="large"></ion-icon>
+    <p>No hay notificaciones</p>
+  </div>
 </ion-content>

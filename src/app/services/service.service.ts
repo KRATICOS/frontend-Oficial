@@ -1,8 +1,10 @@
-import { HttpClient } from '@angular/common/http';
-import { inject, Injectable } from '@angular/core';
-import { Observable } from 'rxjs';
+
 import { environment } from '../../environments/environment';
 import { Usuario } from '../interface';
+import { HttpClient, HttpErrorResponse } from '@angular/common/http';
+import { inject, Injectable } from '@angular/core';
+import { Observable, throwError } from 'rxjs';
+import { catchError } from 'rxjs/operators';
 
 
 
@@ -32,26 +34,49 @@ export class ServiceService {
     return this.http.get<Usuario>(`${this.baseUrl}/${id}`);
   }
 
+  private handleError(error: HttpErrorResponse) {
+    console.error('Error en la solicitud:', error);
+    let errorMessage = 'Ocurrió un error desconocido';
+    if (error.error instanceof ErrorEvent) {
+      errorMessage = `Error: ${error.error.message}`;
+    } else {
+      errorMessage = `Código: ${error.status}\nMensaje: ${error.message}`;
+      if (error.error?.message) {
+        errorMessage = error.error.message;
+      }
+    }
+    return throwError(() => new Error(errorMessage));
+  }
+
   createUser(data: FormData): Observable<any> {
-    return this.http.post(`${environment.apiUrl}${environment.endpoints.usuario}/create`, data);
+    return this.http.post(`${this.baseUrl}/create`, data, {
+      reportProgress: true,
+      observe: 'response'
+    }).pipe(
+      catchError(this.handleError)
+    );
   }
 
   registerPublicUser(user: FormData): Observable<any> {
-    return this.http.post(`${environment.apiUrl}${environment.endpoints.usuario}/create`, user);
+    return this.http.post(`${this.baseUrl}/create`, user).pipe(
+      catchError(this.handleError)
+    );
   }
 
-  updateUser(userId: string, data: any, isFormData = false): Observable<any> {
-    const token = localStorage.getItem('token');
-    const headers: any = {
-      Authorization: `Bearer ${token || ''}`
-    };
+updateUser(userId: string, data: any, isFormData = false): Observable<any> {
+  const token = localStorage.getItem('token');
+  const headers: any = {
+    Authorization: `Bearer ${token || ''}`
+  };
 
-    if (!isFormData) {
-      headers['Content-Type'] = 'application/json';
-    }
-
-    return this.http.put(`${this.baseUrl}/${userId}`, data, { headers });
+  if (!isFormData) {
+    headers['Content-Type'] = 'application/json';
   }
+
+  return this.http.put(`${this.baseUrl}/${userId}`, data, { headers }).pipe(
+    catchError(this.handleError) // Asegúrate de manejar los errores aquí también
+  );
+}
 
 
 
@@ -63,8 +88,13 @@ export class ServiceService {
     return this.http.post<LoginResponse>(`${this.authUrl}/login`, credentials);
   }
 
-  registerAdmin(user: Partial<Usuario> & { password: string }): Observable<any> {
-    return this.http.post(`${this.authUrl}/register-admin`, user);
-  }
+registerAdmin(user: Partial<Usuario> & { password: string }): Observable<any> {
+    const token = localStorage.getItem('token'); // or wherever you store your JWT
+    const headers = {
+        Authorization: `Bearer ${token}`
+    };
+
+    return this.http.post(`${this.authUrl}/register-admin`, user, { headers });
+}
 
 }

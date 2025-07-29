@@ -1,43 +1,55 @@
 <ion-header>
   <ion-toolbar color="primary">
-    <ion-title>Material en Uso</ion-title>
+    <ion-title>Historial</ion-title>
   </ion-toolbar>
 </ion-header>
 
 <ion-content class="ion-padding">
-
   <!-- Tabla de registros -->
   <ion-grid>
     <ion-row class="table-header ion-text-center">
-      <ion-col size="3"><strong>Material</strong></ion-col>
-      <ion-col size="4"><strong>Fecha y Hora</strong></ion-col>
-      <ion-col size="3"><strong>Estatus</strong></ion-col>
+      <ion-col size="4"><strong>Material</strong></ion-col>
+      <ion-col size="3"><strong>Fecha</strong></ion-col>
+      <ion-col size="3"><strong>Usuario</strong></ion-col>
       <ion-col size="2"><strong>Acción</strong></ion-col>
     </ion-row>
 
     <ion-row *ngFor="let registro of registros" class="table-row ion-text-center">
-      <ion-col size="3">{{ registro.inventarioId?.name || 'Sin código' }}</ion-col>
-      <ion-col size="4">{{ registro.fechaPrestamo | date:'short' }} {{ registro.horaSolicitud }}</ion-col>
-      <ion-col size="3">{{ registro.estado }}</ion-col>
+      <ion-col size="4" class="truncate">{{ getNombreMaterial(registro) }}</ion-col>
+      <ion-col size="3">{{ registro.fechaPrestamo | date:'shortDate' }}</ion-col>
+      <ion-col size="3" class="truncate">{{ getNombreUsuario(registro) }}</ion-col>
       <ion-col size="2">
         <ion-button fill="outline" size="small" color="primary" (click)="verDetalles(registro)">
-          Ver detalles
+          Ver
         </ion-button>
       </ion-col>
     </ion-row>
   </ion-grid>
 
   <!-- Modal de detalles -->
-  <ion-modal id="detalleModal">
-    <ng-template>
-      <ion-content class="ion-padding">
-        <ion-button expand="block" color="danger" (click)="cerrarModal()">Cerrar</ion-button>
-        <h2 class="ion-text-center ion-margin-top">Detalles del Préstamo</h2>
+  <ion-modal [isOpen]="mostrarModal" (didDismiss)="cerrarModal()">
+    <ion-header>
+      <ion-toolbar color="primary">
+        <ion-title>Detalles del Préstamo</ion-title>
+        <ion-buttons slot="end">
+          <ion-button (click)="cerrarModal()">
+            <ion-icon name="close" slot="icon-only"></ion-icon>
+          </ion-button>
+        </ion-buttons>
+      </ion-toolbar>
+    </ion-header>
 
-        <ion-list>
+    <ion-content class="ion-padding">
+      <div *ngIf="selectedRegistro">
+        <!-- Pestaña de Información -->
+        <ion-list *ngIf="selectedSegment === 'tab1'">
+          <ion-item-divider color="light">
+            <ion-label><strong>Datos del Usuario</strong></ion-label>
+          </ion-item-divider>
+
           <ion-item>
             <ion-label>
-              <strong>Nombre del usuario:</strong><br>
+              <strong>Nombre:</strong><br>
               {{ selectedUsuario?.name || 'No disponible' }}
             </ion-label>
           </ion-item>
@@ -60,10 +72,14 @@
             </ion-label>
           </ion-item>
 
+          <ion-item-divider color="light">
+            <ion-label><strong>Datos del Material</strong></ion-label>
+          </ion-item-divider>
+
           <ion-item>
             <ion-label>
               <strong>Nombre del material:</strong><br>
-              {{ selectedInventario?.name || 'No disponible' }}
+              {{ selectedInventario?.name || 'Material desconocido' }}
             </ion-label>
           </ion-item>
           <ion-item>
@@ -72,27 +88,38 @@
               {{ selectedInventario?.model || 'No disponible' }}
             </ion-label>
           </ion-item>
-          <ion-item>
-            <ion-label>
-              <strong>Fecha y hora del préstamo:</strong><br>
-              {{ selectedRegistro?.fechaPrestamo | date:'fullDate' }} - {{ selectedRegistro?.horaSolicitud }}
-            </ion-label>
-          </ion-item>
+
+          <ion-item-divider color="light">
+            <ion-label><strong>Fechas y Tiempos</strong></ion-label>
+          </ion-item-divider>
 
           <ion-item>
             <ion-label>
-              <strong>Fecha y hora de devolucion:</strong><br>
-              {{ selectedRegistro?.fechaDevolucion | date:'fullDate' }} - {{ selectedRegistro?.horaSolicitud }}
+              <strong>Préstamo:</strong><br>
+              {{ selectedRegistro.fechaPrestamo | date:'fullDate' }} - {{ selectedRegistro.horaSolicitud }}
             </ion-label>
           </ion-item>
-          <ion-item *ngIf="selectedRegistro?.observaciones">
+          <ion-item>
+            <ion-label>
+              <strong>Devolución:</strong><br>
+              {{ selectedRegistro.fechaDevolucion ? (selectedRegistro.fechaDevolucion | date:'fullDate') : 'No registrada' }} -
+              {{ selectedRegistro.horaDevolucion || 'No registrada' }}
+            </ion-label>
+          </ion-item>
+
+          <ion-item *ngIf="selectedRegistro.observaciones">
             <ion-label>
               <strong>Observaciones:</strong><br>
-              {{ selectedRegistro?.observaciones }}
+              {{ selectedRegistro.observaciones }}
             </ion-label>
           </ion-item>
         </ion-list>
-      </ion-content>
-    </ng-template>
+
+        <ion-button expand="block" color="danger" (click)="cerrarModal()">
+          Cerrar
+          <ion-icon name="close" slot="end"></ion-icon>
+        </ion-button>
+      </div>
+    </ion-content>
   </ion-modal>
 </ion-content>

@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { BehaviorSubject, Observable,Subject } from 'rxjs';
+import { BehaviorSubject, Observable, Subject } from 'rxjs';
 import { LocalNotifications } from '@capacitor/local-notifications';
 
 export interface NotificacionReserva {
@@ -10,22 +10,24 @@ export interface NotificacionReserva {
   usuarioNombre: string;
   usuarioImagen?: string;
   horaInicio: string;
-  horaFin?: string;                                    // opcional ⇢ solo reservas
+  horaFin?: string;
+  horaFinNumero?: number;
   observaciones?: string;
-  estado: 'Pendiente' | 'Aprobado' | 'Rechazado' |
-          'Devolución Próxima' | 'Devolución Vencida';
-  fecha: Date;
+  estado: 'Pendiente' | 'Aprobado' | 'Rechazado' | 'Devolución Confirmada' | 'Devolución Rechazada';
+  fecha: Date | string;
   leida: boolean;
   notificacionesProgramadas?: number[];
-  tipo: 'qr' | 'reserva';                              // ahora requerido
+  tipo: 'qr' | 'reserva' | 'devolucion';
   ultimaNotificacionVencida?: Date;
+  prestamoId?: string;
+  activada?: boolean;
+  notificacionDevolucionEnviada?: boolean;
   extra?: {
     type?: string;
     minutosRestantes?: number;
     minutosVencidos?: number;
   };
 }
-
 
 @Injectable({
   providedIn: 'root'
@@ -36,7 +38,11 @@ export class NotificationService {
   private readonly storageKey = 'reservas_notificaciones';
   private intervalId: any;
   private cambiosSubject = new Subject<void>();
+  private bloqueoHoraSubject = new Subject<any>();
+  private bloqueoHoraAutomaticoSubject = new Subject<any>();
 
+  bloqueoHora$ = this.bloqueoHoraSubject.asObservable();
+  bloqueoHoraAutomatico$ = this.bloqueoHoraAutomaticoSubject.asObservable();
 
   constructor() {
     this.cargarNotificacionesIniciales();
@@ -46,19 +52,35 @@ export class NotificationService {
   get notificacionesActuales(): NotificacionReserva[] {
     return this.notificacionesSubject.value;
   }
+
   
+
+  notificarCambios() {
+    this.cambiosSubject.next();
+  }
+
+  obtenerCambiosObservable() {
+    return this.cambiosSubject.asObservable();
+  }
+
+  notificarBloqueoHoraAutomatico(data: any) {
+    this.bloqueoHoraAutomaticoSubject.next(data);
+  }
+
+  notificarBloqueoHora(data: {equipoId: string, hora: number, accion: 'bloquear' | 'desbloquear'}) {
+    this.bloqueoHoraSubject.next(data);
+  }
+
   private cargarNotificacionesIniciales() {
     try {
       const notificacionesGuardadas = localStorage.getItem(this.storageKey);
       if (notificacionesGuardadas) {
-        const notificaciones = JSON.parse(notificacionesGuardadas);
-        const parsedNotificaciones = notificaciones.map((n: any) => ({
-          ...n,
-          fecha: new Date(n.fecha),
-          notificacionesProgramadas: n.notificacionesProgramadas || [],
-          ultimaNotificacionVencida: n.ultimaNotificacionVencida ? new Date(n.ultimaNotificacionVencida) : undefined
-        }));
-        this.notificacionesSubject.next(parsedNotificaciones);
+        const parsed = JSON.parse(notificacionesGuardadas);
+        if (!Array.isArray(parsed)) {
+          throw new Error('Formato de notificaciones inválido');
+        }
+        const notificacionesNormalizadas = parsed.map(n => this.normalizeNotification(n));
+        this.notificacionesSubject.next(notificacionesNormalizadas);
       }
     } catch (error) {
       console.error('Error al cargar notificaciones:', error);
@@ -66,19 +88,29 @@ export class NotificationService {
     }
   }
 
-  notificarCambios() {
-  this.cambiosSubject.next();
+  async marcarNotificacionDevolucionEnviada(notificacionId: string): Promise<void> {
+  try {
+    const actualizadas = this.notificacionesSubject.value.map(n => {
+      if (n._id === notificacionId) {
+        return { ...n, notificacionDevolucionEnviada: true };
+      }
+      return n;
+    });
+
+    this.notificacionesSubject.next(actualizadas);
+    this.guardarNotificaciones(actualizadas);
+  } catch (error) {
+    console.error('Error marcando notificación como enviada:', error);
+    throw error;
+  }
 }
 
-obtenerCambiosObservable() {
-  return this.cambiosSubject.asObservable();
-}
+
 
   private iniciarMonitorDevoluciones() {
     if (this.intervalId) {
       clearInterval(this.intervalId);
     }
-
     this.intervalId = setInterval(() => {
       this.verificarDevolucionesPendientes();
     }, 300000); // 5 minutos
@@ -95,7 +127,7 @@ obtenerCambiosObservable() {
       if (notif.estado !== 'Aprobado') continue;
 
       const horaFin = this.obtenerHoraFin(notif);
-      if (horaFin === null) continue;                 // no aplica
+      if (horaFin === null) continue;
 
       const minutosRestantes = (horaFin - horaActual) * 60 - minutoActual;
 
@@ -106,16 +138,16 @@ obtenerCambiosObservable() {
       }
     }
   }
-    private obtenerHoraFin(notif: NotificacionReserva): number | null {
+
+  private obtenerHoraFin(notif: NotificacionReserva): number | null {
     if (notif.tipo === 'qr') {
-      return parseInt(notif.horaInicio.split(':')[0], 10) + 1; // 1 h después
+      return parseInt(notif.horaInicio.split(':')[0], 10) + 1;
     }
     if (notif.horaFin) {
       return parseInt(notif.horaFin.split(':')[0], 10);
     }
     return null;
   }
-
 
   private async notificarTiempoRestante(notif: NotificacionReserva, minutosRestantes: number) {
     const notifId = Math.floor(Math.random() * 10000);
@@ -214,19 +246,24 @@ obtenerCambiosObservable() {
   }
 
   private actualizarUltimaNotificacion(notificacionId: string, fecha: Date) {
-    const actual = this.notificacionesSubject.value.map(n => {
-      if (n._id === notificacionId) {
-        return { ...n, ultimaNotificacionVencida: fecha };
-      }
-      return n;
-    });
-    this.notificacionesSubject.next(actual);
-    this.guardarNotificaciones(actual);
+    try {
+      const actual = this.notificacionesSubject.value.map(n => {
+        if (n._id === notificacionId) {
+          return { ...n, ultimaNotificacionVencida: fecha };
+        }
+        return n;
+      });
+      this.notificacionesSubject.next(actual);
+      this.guardarNotificaciones(actual);
+    } catch (error) {
+      console.error('Error actualizando última notificación:', error);
+    }
   }
+
+  
 
   async notificarDevolucionExitosa(notif: NotificacionReserva) {
     try {
-      // Notificar al usuario
       await LocalNotifications.schedule({
         notifications: [{
           id: Math.floor(Math.random() * 10000),
@@ -239,7 +276,6 @@ obtenerCambiosObservable() {
         }]
       });
 
-      // Notificar al admin
       await LocalNotifications.schedule({
         notifications: [{
           id: Math.floor(Math.random() * 10000),
@@ -252,7 +288,6 @@ obtenerCambiosObservable() {
         }]
       });
 
-      // Cancelar notificaciones programadas
       if (notif.notificacionesProgramadas?.length) {
         await LocalNotifications.cancel({ 
           notifications: notif.notificacionesProgramadas.map(id => ({ id })) 
@@ -263,81 +298,45 @@ obtenerCambiosObservable() {
     }
   }
 
-  private guardarNotificaciones(notificaciones: NotificacionReserva[]) {
-    localStorage.setItem(this.storageKey, JSON.stringify(notificaciones));
+private guardarNotificaciones(notificaciones: NotificacionReserva[]) {
+  try {
+    const toSave = notificaciones.map(n => ({
+      ...n,
+      fecha: this.stringifyDate(n.fecha instanceof Date ? n.fecha : new Date(n.fecha)),
+      ultimaNotificacionVencida: n.ultimaNotificacionVencida 
+        ? this.stringifyDate(n.ultimaNotificacionVencida instanceof Date 
+            ? n.ultimaNotificacionVencida 
+            : new Date(n.ultimaNotificacionVencida))
+        : undefined
+    }));
+    localStorage.setItem(this.storageKey, JSON.stringify(toSave));
+  } catch (error) {
+    console.error('Error guardando notificaciones:', error);
   }
+}
 
   async agregarNotificacion(nueva: Omit<NotificacionReserva, '_id' | 'fecha' | 'leida'>): Promise<NotificacionReserva> {
-    // Verificar si ya existe una notificación QR para este equipo sin horaFin
-    if (nueva.tipo === 'qr') {
-      const notifExistente = this.notificacionesActuales.find(n => 
-        n.equipoId === nueva.equipoId && 
-        n.tipo === 'qr' && 
-        n.estado === 'Aprobado' && 
-        !n.horaFin
-      );
-if (notifExistente) {
-  /** devolución QR *********************************************/
-  if (!nueva.horaFin) {
-    throw new Error('horaFin es obligatoria al registrar una devolución QR');
-  }
-
-  const actual = this.notificacionesSubject.value.map(n => {
-    if (n._id === notifExistente._id) {
-      return {
-        ...n,
-        horaFin: nueva.horaFin,            // ← ya sabemos que existe
-        estado: 'Aprobado' as const,
-        notificacionesProgramadas: []
-      };
-    }
-    return n;
-  });
-
-  this.notificacionesSubject.next(actual);
-  this.guardarNotificaciones(actual);
-
-  // ✅ horaFin garantizada
-  await this.notificarDevolucionQR(notifExistente, nueva.horaFin);
-
-  return actual.find(n => n._id === notifExistente._id)!;
-      } else {
-        // Es un nuevo préstamo QR
-        await this.notificarPrestamoQR(nueva);
-      }
-    }
-
-    const notificacionCompleta: NotificacionReserva = {
-      ...nueva,
-      _id: `notif-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
-      fecha: new Date(),
-      leida: false,
-      notificacionesProgramadas: [],
-      tipo: nueva.tipo || 'reserva'
-    };
-
     try {
-      await this.verificarPermisos();
-      
-      if (notificacionCompleta.tipo === 'qr') {
-        // Notificaciones para QR ya se manejaron arriba
-      } else {
-        await this.notificarAdministradores(notificacionCompleta);
-        
-        if (notificacionCompleta.estado === 'Aprobado' || notificacionCompleta.estado === 'Rechazado') {
-          await this.notificarUsuario(notificacionCompleta);
-        }
-
-        if (notificacionCompleta.estado === 'Aprobado') {
-          const notifIds = await this.programarNotificaciones(notificacionCompleta);
-          notificacionCompleta.notificacionesProgramadas = notifIds;
-        }
+      if (!nueva.equipoId || !nueva.usuarioId) {
+        throw new Error('Datos incompletos para la notificación');
       }
+
+      const notificacionCompleta: NotificacionReserva = {
+        ...nueva,
+        _id: `notif-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+        fecha: new Date(),
+        leida: false,
+        notificacionesProgramadas: [],
+        tipo: nueva.tipo || 'reserva',
+        activada: false,
+        notificacionDevolucionEnviada: false
+      };
 
       const actual = this.notificacionesSubject.value;
       const actualizadas = [...actual, notificacionCompleta];
       this.notificacionesSubject.next(actualizadas);
       this.guardarNotificaciones(actualizadas);
+      
       return notificacionCompleta;
     } catch (error) {
       console.error('Error al agregar notificación:', error);
@@ -345,234 +344,113 @@ if (notifExistente) {
     }
   }
 
-  private async notificarPrestamoQR(nueva: Omit<NotificacionReserva, '_id' | 'fecha' | 'leida'>) {
+  async solicitarDevolucion(equipoId: string, usuarioId: string, prestamoId: string): Promise<NotificacionReserva> {
     try {
-      // Notificación al usuario
-      await LocalNotifications.schedule({
-        notifications: [{
-          id: Math.floor(Math.random() * 10000),
-          title: 'Préstamo QR registrado',
-          body: `Has tomado ${nueva.equipoNombre} correctamente`,
-          extra: {
-            tipo: 'qr-prestamo',
-            equipoId: nueva.equipoId,
-            usuarioId: nueva.usuarioId
-          }
-        }]
-      });
-
-      // Notificación a administradores
-      await LocalNotifications.schedule({
-        notifications: [{
-          id: Math.floor(Math.random() * 10000),
-          title: 'Nuevo préstamo QR',
-          body: `${nueva.usuarioNombre} ha tomado ${nueva.equipoNombre} mediante QR`,
-          extra: {
-            tipo: 'admin-qr-prestamo',
-            equipoId: nueva.equipoId
-          }
-        }]
-      });
-    } catch (error) {
-      console.error('Error notificando préstamo QR:', error);
-    }
-  }
-
-  private async notificarDevolucionQR(notif: NotificacionReserva, horaFin: string) {
-    try {
-      // Notificación al usuario
-      await LocalNotifications.schedule({
-        notifications: [{
-          id: Math.floor(Math.random() * 10000),
-          title: 'Devolución QR registrada',
-          body: `Has devuelto ${notif.equipoNombre} correctamente a las ${horaFin}`,
-          extra: {
-            tipo: 'qr-devolucion',
-            equipoId: notif.equipoId,
-            usuarioId: notif.usuarioId
-          }
-        }]
-      });
-
-      // Notificación a administradores
-      await LocalNotifications.schedule({
-        notifications: [{
-          id: Math.floor(Math.random() * 10000),
-          title: 'Devolución QR registrada',
-          body: `${notif.usuarioNombre} ha devuelto ${notif.equipoNombre} mediante QR a las ${horaFin}`,
-          extra: {
-            tipo: 'admin-qr-devolucion',
-            equipoId: notif.equipoId
-          }
-        }]
-      });
-    } catch (error) {
-      console.error('Error notificando devolución QR:', error);
-    }
-  }
-
-  private async programarNotificacionQR(notificacion: NotificacionReserva): Promise<number> {
-    const notifId = Math.floor(Math.random() * 10000);
-    try {
-      const horaFin = parseInt(notificacion.horaInicio.split(':')[0]) + 1;
-      const ahora = new Date();
-      
-      const scheduleTime = new Date(
-        ahora.getFullYear(),
-        ahora.getMonth(),
-        ahora.getDate(),
-        horaFin,
-        0, // Minutos
-        0  // Segundos
+      const solicitudExistente = this.notificacionesActuales.find(
+        n => n.equipoId === equipoId && 
+             n.usuarioId === usuarioId && 
+             n.tipo === 'devolucion' && 
+             n.estado === 'Pendiente'
       );
 
-      await LocalNotifications.schedule({
-        notifications: [{
-          id: notifId,
-          title: 'Devolución QR requerida',
-          body: `Por favor, devuelve ${notificacion.equipoNombre}`,
-          schedule: { at: scheduleTime },
-          extra: { 
-            reservaId: notificacion._id,
-            tipo: 'qr-devolucion'
-          }
-        }]
-      });
-    } catch (error) {
-      console.error('Error programando notificación QR:', error);
-    }
-    return notifId;
-  }
-  
-  private async notificarAdministradores(notificacion: NotificacionReserva) {
-    try {
-      let title = '';
-      let body = '';
-
-      if (notificacion.tipo === 'qr') {
-        title = notificacion.horaFin ? 'Devolución QR' : 'Préstamo QR';
-        body = `${notificacion.usuarioNombre} ha ${notificacion.horaFin ? 'devuelto' : 'tomado'} ${notificacion.equipoNombre}`;
-      } else {
-        title = `Reserva ${notificacion.estado === 'Pendiente' ? 'pendiente' : notificacion.estado.toLowerCase()}`;
-        body = `${notificacion.usuarioNombre} ha ${notificacion.estado === 'Pendiente' ? 'solicitado' : notificacion.estado === 'Aprobado' ? 'obtenido' : 'perdido'} ${notificacion.equipoNombre}`;
+      if (solicitudExistente) {
+        throw new Error('Ya existe una solicitud de devolución pendiente');
       }
 
+      const notificacion = await this.agregarNotificacion({
+        equipoId: equipoId,
+        equipoNombre: 'Equipo', // Deberías obtener el nombre real del equipo
+        usuarioId: usuarioId,
+        usuarioNombre: 'Usuario', // Deberías obtener el nombre real del usuario
+        horaInicio: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        estado: 'Pendiente',
+        tipo: 'devolucion',
+        observaciones: 'Solicitud de devolución del equipo',
+        prestamoId: prestamoId
+      });
+
+      await this.notificarAdministradores(
+        'Solicitud de Devolución',
+        `El usuario ha solicitado devolver el equipo`,
+        notificacion._id
+      );
+
+      return notificacion;
+    } catch (error) {
+      console.error('Error en solicitarDevolucion:', error);
+      throw error;
+    }
+  }
+
+  async confirmarDevolucion(notificacionId: string, aceptada: boolean): Promise<void> {
+    const notificacion = this.notificacionesActuales.find(n => n._id === notificacionId);
+    if (!notificacion) {
+      throw new Error('Notificación no encontrada');
+    }
+
+    try {
+      const estado = aceptada ? 'Devolución Confirmada' : 'Devolución Rechazada';
+      await this.actualizarEstado(notificacionId, estado);
+
+      const titulo = aceptada ? 'Devolución Aceptada' : 'Devolución Rechazada';
+      const mensaje = aceptada 
+        ? `El administrador ha aceptado la devolución del equipo`
+        : `El administrador ha rechazado la devolución del equipo. Por favor, contacta al administrador.`;
+
+      await this.enviarNotificacionUsuario(
+        notificacion.usuarioId,
+        titulo,
+        mensaje,
+        notificacion._id
+      );
+
+      if (aceptada) {
+        await this.notificarDevolucionExitosa(notificacion);
+      }
+    } catch (error) {
+      console.error('Error en confirmarDevolucion:', error);
+      throw error;
+    }
+  }
+
+  async notificarAdministradores(titulo: string, mensaje: string, notificacionId: string): Promise<void> {
+    try {
       await LocalNotifications.schedule({
         notifications: [{
           id: Math.floor(Math.random() * 10000),
-          title,
-          body,
-          extra: { 
-            tipo: 'admin',
-            notificacionId: notificacion._id 
+          title: titulo,
+          body: mensaje,
+          extra: {
+            type: 'admin-notification',
+            notificacionId
           }
         }]
       });
     } catch (error) {
       console.error('Error notificando a administradores:', error);
+      throw error;
     }
   }
 
-  private async notificarUsuario(notificacion: NotificacionReserva) {
+  async enviarNotificacionUsuario(usuarioId: string, titulo: string, mensaje: string, notificacionId: string) {
     try {
-      let title = '';
-      let body = '';
-
-      if (notificacion.tipo === 'qr') {
-        title = notificacion.horaFin ? 'Devolución QR confirmada' : 'Préstamo QR confirmado';
-        body = `Has ${notificacion.horaFin ? 'devuelto' : 'tomado'} ${notificacion.equipoNombre} correctamente`;
-      } else {
-        title = `Reserva ${notificacion.estado.toLowerCase()}`;
-        body = `Tu reserva para ${notificacion.equipoNombre} ha sido ${notificacion.estado.toLowerCase()}`;
-      }
-
       await LocalNotifications.schedule({
         notifications: [{
           id: Math.floor(Math.random() * 10000),
-          title,
-          body,
-          extra: { 
-            tipo: 'usuario',
-            notificacionId: notificacion._id,
-            usuarioId: notificacion.usuarioId
+          title: titulo,
+          body: mensaje,
+          extra: {
+            usuarioId,
+            notificacionId
           }
         }]
       });
     } catch (error) {
-      console.error('Error notificando al usuario:', error);
+      console.error('Error enviando notificación al usuario:', error);
     }
   }
 
-  private async verificarPermisos(): Promise<void> {
-    const permission = await LocalNotifications.checkPermissions();
-    if (permission.display !== 'granted') {
-      const req = await LocalNotifications.requestPermissions();
-      if (req.display !== 'granted') {
-        throw new Error('Permisos de notificación no concedidos');
-      }
-    }
-  }
-
- private async programarNotificaciones(
-    notificacion: NotificacionReserva
-  ): Promise<number[]> {
-
-    const notifIds: number[] = [];
-
-    try {
-      if (!notificacion.horaFin) {
-        throw new Error('horaFin no definida para la reserva');
-      }
-
-      const startHour = parseInt(notificacion.horaInicio.split(':')[0], 10);
-      const endHour   = parseInt(notificacion.horaFin.split(':')[0], 10);
-
-      const now = new Date();
-
-      const schedule30 = new Date(
-        now.getFullYear(), now.getMonth(), now.getDate(),
-        startHour - 1, 30
-      );
-      const scheduleLate = new Date(
-        now.getFullYear(), now.getMonth(), now.getDate(),
-        endHour, 15
-      );
-
-      if (schedule30 <= now || scheduleLate <= now) {
-        throw new Error('Las fechas de notificación deben ser futuras');
-      }
-
-      const id30   = Math.floor(Date.now() / 1000) + 1;
-      const idLate = id30 + 1;
-
-      await LocalNotifications.schedule({
-        notifications: [
-          {
-            id: id30,
-            title: 'Reserva próxima a activarse',
-            body: `Tu reserva para ${notificacion.equipoNombre} se activará en 30 minutos.`,
-            schedule: { at: schedule30 },
-            extra: { reservaId: notificacion._id }
-          },
-          {
-            id: idLate,
-            title: 'Devolución atrasada',
-            body: `Tu reserva para ${notificacion.equipoNombre} está atrasada. Devuelve el equipo.`,
-            schedule: { at: scheduleLate },
-            extra: { reservaId: notificacion._id }
-          }
-        ]
-      });
-
-      notifIds.push(id30, idLate);
-    } catch (e) {
-      console.error('Error programando notificaciones:', e);
-      throw e;
-    }
-    return notifIds;
-  }
-
-  async actualizarEstado(id: string, nuevoEstado: 'Aprobado' | 'Rechazado') {
+  async actualizarEstado(id: string, nuevoEstado: 'Aprobado' | 'Rechazado' | 'Devolución Confirmada' | 'Devolución Rechazada') {
     try {
       const actual = this.notificacionesSubject.value.map(n => {
         if (n._id === id) {
@@ -587,6 +465,38 @@ if (notifExistente) {
       this.guardarNotificaciones(actual);
     } catch (error) {
       console.error('Error actualizando estado:', error);
+      throw error;
+    }
+  }
+
+  async marcarReservaComoActivada(notificacionId: string, prestamoId: string): Promise<void> {
+    try {
+      const actual = this.notificacionesSubject.value.map(n => {
+        if (n._id === notificacionId) {
+          return { ...n, activada: true, prestamoId };
+        }
+        return n;
+      });
+      this.notificacionesSubject.next(actual);
+      this.guardarNotificaciones(actual);
+    } catch (error) {
+      console.error('Error marcando reserva como activada:', error);
+      throw error;
+    }
+  }
+
+  async actualizarEstadoEquipoReserva(notificacionId: string, estado: string): Promise<void> {
+    try {
+      const actual = this.notificacionesSubject.value.map(n => {
+        if (n._id === notificacionId) {
+          return { ...n, estadoEquipo: estado };
+        }
+        return n;
+      });
+      this.notificacionesSubject.next(actual);
+      this.guardarNotificaciones(actual);
+    } catch (error) {
+      console.error('Error actualizando estado de equipo en reserva:', error);
       throw error;
     }
   }
@@ -627,21 +537,24 @@ if (notifExistente) {
     this.guardarNotificaciones(actual);
   }
 
-  async enviarNotificacionUsuario(usuarioId: string, titulo: string, mensaje: string, notificacionId: string) {
-    try {
-      await LocalNotifications.schedule({
-        notifications: [{
-          id: Math.floor(Math.random() * 10000),
-          title: titulo,
-          body: mensaje,
-          extra: {
-            usuarioId,
-            notificacionId
-          }
-        }]
-      });
-    } catch (error) {
-      console.error('Error enviando notificación al usuario:', error);
-    }
+  private parseDate(value: string | Date | undefined): Date {
+    if (!value) return new Date();
+    return typeof value === 'string' ? new Date(value) : value;
+  }
+
+  private stringifyDate(date: Date): string {
+    return date.toISOString();
+  }
+
+  private normalizeNotification(notif: any): NotificacionReserva {
+    return {
+      ...notif,
+      fecha: this.parseDate(notif.fecha),
+      ultimaNotificacionVencida: notif.ultimaNotificacionVencida ? 
+        this.parseDate(notif.ultimaNotificacionVencida) : undefined,
+      notificacionesProgramadas: notif.notificacionesProgramadas || [],
+      activada: notif.activada || false,
+      notificacionDevolucionEnviada: notif.notificacionDevolucionEnviada || false
+    };
   }
 }

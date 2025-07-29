@@ -17,10 +17,8 @@ import { InventarioService } from '../services/inventario.service';
   styleUrls: ['./tab-admin.page.scss'],
   standalone: true,
   imports: [
-    IonCard, IonButtons, CommonModule, FormsModule,
-    IonContent, IonHeader, IonTitle, IonToolbar,
-    IonLabel, IonItem, IonButton, IonModal, IonList,
-    IonInput, IonRow, IonCol, IonGrid, IonText
+     CommonModule, FormsModule,
+    IonContent, IonHeader, IonTitle, IonToolbar, IonRow, IonCol, IonGrid,
   ]
 })
 export class TabAdminPage implements OnInit {
@@ -82,6 +80,15 @@ export class TabAdminPage implements OnInit {
   return 'Sin código';
 }
 
+getEstadoColor(estado: string): string {
+  switch (estado) {
+    case 'Disponible': return '#2dd36f'; // success (verde)
+    case 'Ocupado': return '#ffc409';    // warning (amarillo)
+    case 'En Mantenimiento': return '#eb445a'; // danger (rojo)
+    default: return '#92949c';           // medium (gris)
+  }
+}
+
   cerrarModal() {
     const modal = document.getElementById('detalleModal') as HTMLIonModalElement;
     if (modal) {
@@ -91,4 +98,23 @@ export class TabAdminPage implements OnInit {
     this.selectedUsuario = null;
     this.selectedInventario = null;
   }
+
+
+getNombreUsuario(registro: Registro): string {
+  if (registro.usuarioId && typeof registro.usuarioId !== 'string') {
+    return registro.usuarioId.name ?? 'No disponible';
+  }
+  return 'No disponible';
 }
+
+getGrupoUsuario(registro: Registro): string {
+  if (registro.usuarioId && typeof registro.usuarioId !== 'string') {
+    return registro.usuarioId.grupo ?? 'No disponible';
+  }
+  return 'No disponible';
+}
+
+}
+
+
+

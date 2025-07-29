@@ -7,7 +7,7 @@ import {
   IonAlert, AlertController, ToastController 
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
-import { checkmarkCircle, closeCircle, time, notifications, notificationsOff, alarm } from 'ionicons/icons';
+import { checkmarkCircle, closeCircle, time, notifications, notificationsOff, alarm, trash } from 'ionicons/icons';
 import { LocalNotifications } from '@capacitor/local-notifications';
 
 import { NotificationService, NotificacionReserva } from '../../services/notification.service';
@@ -32,7 +32,7 @@ export class NotificacionesUserComponent implements OnInit {
   currentUser: any;
 
   constructor() {
-    addIcons({ notificationsOff, checkmarkCircle, closeCircle, time, notifications, alarm });
+    addIcons({trash,notificationsOff,checkmarkCircle,closeCircle,time,notifications,alarm});
   }
 
   private notificationService = inject(NotificationService);
@@ -87,7 +87,7 @@ export class NotificacionesUserComponent implements OnInit {
   private getNewNotifications(): NotificacionReserva[] {
     return this.notificaciones.filter(n => 
       !n.leida && (n.estado === 'Aprobado' || n.estado === 'Rechazado' || 
-      n.estado === 'Devolución Próxima' || n.estado === 'Devolución Vencida')
+      n.estado === 'Devolución Confirmada' || n.estado === 'Devolución Rechazada')
     );
   }
 
@@ -114,32 +114,56 @@ export class NotificacionesUserComponent implements OnInit {
     }
   }
 
-  private getNotificationContent(notification: NotificacionReserva): { title: string, body: string } {
-    switch(notification.estado) {
-      case 'Aprobado':
-        return { 
-          title: 'Reserva Aprobada',
-          body: `Tu reserva para ${notification.equipoNombre} ha sido aprobada` 
-        };
-      case 'Rechazado':
-        return { 
-          title: 'Reserva Rechazada',
-          body: `Tu reserva para ${notification.equipoNombre} ha sido rechazada` 
-        };
-      case 'Devolución Próxima':
-        return { 
-          title: 'Devolución Próxima',
-          body: `Tienes poco tiempo para devolver ${notification.equipoNombre}` 
-        };
-      case 'Devolución Vencida':
-        return { 
-          title: 'Devolución Vencida',
-          body: `La devolución de ${notification.equipoNombre} está vencida` 
-        };
-      default:
-        return { title: 'Nueva notificación', body: 'Tienes una nueva notificación' };
-    }
+private getNotificationContent(notification: NotificacionReserva): { title: string, body: string } {
+  // Handle return notifications first
+  if (notification.tipo === 'devolucion') {
+    return { 
+      title: notification.estado === 'Aprobado' ? 'Devolución Aceptada' : 'Devolución Rechazada',
+      body: notification.estado === 'Aprobado'
+        ? `El administrador ha confirmado la devolución de ${notification.equipoNombre}`
+        : `El administrador ha rechazado la devolución de ${notification.equipoNombre}`
+    };
   }
+
+  // Handle other notification types
+  switch(notification.estado) {
+    case 'Aprobado':
+      return { 
+        title: 'Reserva Aprobada',
+        body: `Tu reserva para ${notification.equipoNombre} ha sido aprobada` 
+      };
+    case 'Rechazado':
+      return { 
+        title: 'Reserva Rechazada',
+        body: `Tu reserva para ${notification.equipoNombre} ha sido rechazada` 
+      };
+    case 'Devolución Confirmada':
+      return { 
+        title: 'Devolución Próxima',
+        body: `Tienes poco tiempo para devolver ${notification.equipoNombre}` 
+      };
+    case 'Devolución Rechazada':
+      return { 
+        title: 'Devolución Vencida',
+        body: `La devolución de ${notification.equipoNombre} está vencida` 
+      };
+    case 'Pendiente':
+      return notification.tipo === 'qr'
+        ? { 
+            title: 'Préstamo QR Registrado', 
+            body: `Has tomado ${notification.equipoNombre} correctamente` 
+          }
+        : { 
+            title: 'Solicitud de Reserva', 
+            body: `Tu solicitud para ${notification.equipoNombre} está en revisión` 
+          };
+    default:
+      return { 
+        title: 'Nueva notificación', 
+        body: 'Tienes una nueva notificación' 
+      };
+  }
+}
 
   private showToastMessage(message: string, estado: string) {
     this.toastMessage = message;
@@ -191,45 +215,44 @@ export class NotificacionesUserComponent implements OnInit {
     }
   }
 
-  async clearAll() {
-    const alert = await this.alertController.create({
-      header: 'Confirmar',
-      message: '¿Limpiar todas las notificaciones?',
-      buttons: [
-        { text: 'Cancelar', role: 'cancel' },
-        {
-          text: 'Limpiar',
-          handler: async () => {
-            await this.deleteAllNotifications();
+async deleteNotification(notification: NotificacionReserva, event: Event) {
+  event.stopPropagation(); // Evitar que el clic active el markAsRead
+
+  const alert = await this.alertController.create({
+    header: 'Confirmar',
+    message: '¿Deseas eliminar esta notificación?',
+    buttons: [
+      { text: 'Cancelar', role: 'cancel' },
+      {
+        text: 'Eliminar',
+        handler: async () => {
+          try {
+            await this.notificationService.eliminarNotificacion(notification._id);
+            // Recarga las notificaciones para actualizar la vista
+            this.loadNotifications();
+            this.showToastMessage('Notificación eliminada', 'success');
+          } catch (error) {
+            console.error('Error eliminando notificación:', error);
+            await this.showErrorToast('No se pudo eliminar la notificación');
           }
         }
-      ]
-    });
-    await alert.present();
-  }
+      }
+    ]
+  });
 
-  private async deleteAllNotifications() {
-    try {
-      const deletePromises = this.notificaciones
-        .filter(n => n.usuarioId === this.currentUser._id)
-        .map(n => this.notificationService.eliminarNotificacion(n._id));
-      
-      await Promise.all(deletePromises);
-    } catch (error) {
-      console.error('Error eliminando notificaciones:', error);
-      await this.showErrorToast('Error al limpiar notificaciones');
-    }
-  }
+  await alert.present();
+}
 
-  private async showErrorToast(message: string) {
-    const toast = await this.toastController.create({
-      message,
-      duration: 3000,
-      color: 'danger',
-      position: 'top'
-    });
-    await toast.present();
-  }
+async showErrorToast(message: string) {
+  const toast = await this.toastController.create({
+    message,
+    duration: 3000,
+    color: 'danger',
+    position: 'top'
+  });
+  await toast.present();
+}
+
 
   onToastDismiss() {
     this.showToast = false;

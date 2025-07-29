@@ -5,6 +5,7 @@ import { Inventario } from '../interface';
 import { Observable, firstValueFrom } from 'rxjs';
 import { NotificationService } from './notification.service';
 import { ToastController } from '@ionic/angular';
+import { HistorialService } from './historial.service';
 
 @Injectable({
   providedIn: 'root'
@@ -14,7 +15,9 @@ export class InventarioService {
   private http = inject(HttpClient);
   private notificationService = inject(NotificationService);
   private toastController = inject(ToastController);
+  private historialService = inject(HistorialService);
 
+  
   constructor() { }
 
   async toggleEstadoPorUsuario(id: string): Promise<void> {
@@ -23,59 +26,87 @@ export class InventarioService {
       if (!user?._id) throw new Error('Debes iniciar sesión');
 
       const equipo = await firstValueFrom(this.EquiposId(id));
-      if (!equipo?._id) throw new Error('Equipo no válido'); // Validación adicional
+      if (!equipo || !equipo?._id) throw new Error('Equipo no válido');
 
       const ahora = new Date();
       const horaActual = ahora.getHours();
-      const horaFin = horaActual + 1;
+      const horaString = `${horaActual}:00`;
 
       if (equipo.estado === 'Disponible') {
-        await firstValueFrom(this.ActualizarEquipos(id, { estado: 'Ocupado' }));
+        // Registrar préstamo en historial
+        await firstValueFrom(
+          this.historialService.registrarPrestamo({
+            inventarioId: id,
+            usuarioId: user._id,
+            horaSolicitud: horaString,
+            tipoPrestamo: 'reserva'
+          })
+        );
 
-        // Aseguramos que equipo._id existe con el operador !
-        const notificacion = await this.notificationService.agregarNotificacion({
-          equipoId: equipo._id!, // Usamos el operador ! para asegurar que no es undefined
-          equipoNombre: equipo.name || 'Equipo sin nombre',
+        // Cambiar estado del equipo a Ocupado
+        await firstValueFrom(this.ActualizarEquipos(id, {
+          estado: 'Ocupado'
+        }));
+
+        // Crear notificación
+        await this.notificationService.agregarNotificacion({
+          equipoId: equipo._id,
+          equipoNombre: equipo.name,
           usuarioId: user._id,
-          usuarioNombre: user.name || 'Usuario anónimo',
-          horaInicio: `${horaActual}:00`,
-          horaFin: `${horaFin}:00`,
+          usuarioNombre: user.name,
+          horaInicio: horaString,
           estado: 'Aprobado',
-          tipo: 'qr'
+          tipo: 'reserva'
         });
 
         await this.mostrarToast(`Préstamo registrado para ${equipo.name}`, 'success');
+
       } else if (equipo.estado === 'Ocupado') {
-        // Verificar si el mismo usuario tiene el equipo
-        const notificaciones = this.notificationService.notificacionesActuales;
-        const prestamoActual = notificaciones.find(n =>
-          n.equipoId === id &&
-          n.estado === 'Aprobado' &&
-          n.tipo === 'qr' &&
-          !n.horaFin && // Solo préstamos activos
-          n.usuarioId === user._id
+        // Buscar préstamo activo de este usuario y equipo
+        const prestamos = await firstValueFrom(
+          this.historialService.obtenerHistorial()
         );
 
-        if (prestamoActual) {
-          // Actualizar estado en backend
-          await firstValueFrom(this.ActualizarEquipos(id, { estado: 'Disponible' }));
+        const prestamoActivo = prestamos.find((p: any) => {
+          const idEquipo = typeof p.inventarioId === 'string'
+            ? p.inventarioId
+            : p.inventarioId?._id;
+          const idUsuario = typeof p.usuarioId === 'string'
+            ? p.usuarioId
+            : p.usuarioId?._id;
+          return idEquipo === id && idUsuario === user._id && !p.horaDevolucion;
+        });
 
-          // Marcar como devuelto en la notificación
-          await this.notificationService.agregarNotificacion({
-            equipoId: equipo._id,
-            equipoNombre: equipo.name,
-            usuarioId: user._id,
-            usuarioNombre: user.name,
-            horaInicio: prestamoActual.horaInicio,
-            horaFin: `${horaFin}:00`,
-            estado: 'Aprobado',
-            tipo: 'qr'
-          });
-
-          await this.mostrarToast(`Devolución registrada para ${equipo.name}`, 'success');
-        } else {
+        if (!prestamoActivo) {
           throw new Error('Este equipo está ocupado por otro usuario');
         }
+
+        // Registrar devolución en historial
+            await firstValueFrom(
+          this.historialService.registrarDevolucion(prestamoActivo._id, {
+            horaDevolucion: horaString,
+            estado: 'Disponible'
+          })
+        );
+
+        // Cambiar estado del equipo a Disponible
+        await firstValueFrom(this.ActualizarEquipos(id, {
+          estado: 'Disponible'
+        }));
+
+        // Crear notificación de devolución
+        await this.notificationService.agregarNotificacion({
+          equipoId: equipo._id,
+          equipoNombre: equipo.name,
+          usuarioId: user._id,
+          usuarioNombre: user.name,
+          horaInicio: prestamoActivo.horaSolicitud,
+          horaFin: horaString,
+          estado: 'Aprobado',
+          tipo: 'reserva'
+        });
+
+        await this.mostrarToast(`Devolución registrada para ${equipo.name}`, 'success');
       }
     } catch (error: any) {
       console.error('Error al cambiar estado:', error);
@@ -83,7 +114,6 @@ export class InventarioService {
       throw error;
     }
   }
-
 
   buscarPorNumeroSerie(nseries: string): Observable<Inventario> {
     return this.http.get<Inventario>(`${this.baseUrl}/por-serie/${nseries}`);
@@ -107,18 +137,12 @@ export class InventarioService {
     return this.http.get<Inventario[]>(this.baseUrl);
   }
 
-
-
   EquiposId(id: string): Observable<Inventario> {
     return this.http.get<Inventario>(`${this.baseUrl}/${id}`);
   }
 
   ActualizarEquipos(id: string, data: Partial<Inventario>): Observable<Inventario> {
     return this.http.put<Inventario>(`${this.baseUrl}/${id}`, data);
-  }
-
-  getEquiposId(id: string) {
-    return this.http.get(`http://localhost:3001/api/inventario/${id}`);
   }
 
   eliminarEquipo(id: string): Observable<void> {
@@ -135,13 +159,27 @@ export class InventarioService {
     return this.http.put(`${this.baseUrl}/${id}`, data, { headers });
   }
 
-
   obtenerPorCategoria(categoria: string): Observable<Inventario[]> {
     return this.http.get<Inventario[]>(`${this.baseUrl}/categoria/${categoria}`);
   }
 
   obtenerPorEstado(estado: string): Observable<Inventario[]> {
-    const url = `${this.baseUrl}/estado/${encodeURIComponent(estado)}`;
-    return this.http.get<Inventario[]>(url);
+    return this.http.get<Inventario[]>(`${this.baseUrl}/estado/${encodeURIComponent(estado)}`);
   }
+
+  actualizarEstado(id: string, estado: string): Observable<Inventario> {
+    return this.http.put<Inventario>(`${this.baseUrl}/${id}`, { estado });
+  }
+
+
+    async actualizarEstadoAutomatico(id: string, estado: string): Promise<void> {
+    try {
+      await firstValueFrom(this.ActualizarEquipos(id, { estado: estado as 'Disponible' | 'Ocupado' | 'En Mantenimiento' }));
+
+      console.log(`Estado actualizado a ${estado} para equipo ${id}`);
+    } catch (error) {
+      console.error('Error actualizando estado automático:', error);
+    }
+  }
+
 }

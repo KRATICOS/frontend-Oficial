@@ -55,7 +55,6 @@ import {
 export class Tab5AdminPage implements OnInit {
   usuario: any;
   notificaciones: NotificacionReserva[] = [];
-  mostrarNotificaciones = false;
 
   private _serviceService = inject(ServiceService);
   private notificationService = inject(NotificationService);

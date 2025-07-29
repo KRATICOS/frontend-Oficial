@@ -53,7 +53,8 @@ addIcons({
 export class Tab3Page {
   usuario: any;
     notificaciones: NotificacionReserva[] = [];
-  mostrarNotificaciones = false;
+
+  
 
   constructor() { }
 

@@ -27,11 +27,6 @@ export const routes: Routes = [
           import('../reserva/reserva.page').then((m) => m.ReservaPage),
       },
       {
-        path: 'prestamo',
-        loadComponent: () =>
-          import('../prestamo/prestamo.page').then((m) => m.PrestamoPage),
-      },
-      {
         path: '',
         redirectTo: '/tabs/tab1',
         pathMatch: 'full',
@@ -40,7 +35,7 @@ export const routes: Routes = [
   },
   {
     path: '',
-    redirectTo: '/tabs/tab1',
+    redirectTo: '/login',
     pathMatch: 'full',
   }
 ];

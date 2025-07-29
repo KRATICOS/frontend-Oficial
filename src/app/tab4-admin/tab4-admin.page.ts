@@ -4,8 +4,8 @@ import { FormsModule } from '@angular/forms';
 import { 
   IonContent, IonButton, IonItem, IonLabel, IonSelect, IonSelectOption, 
   IonInput, IonList, IonTitle, IonToolbar, IonHeader, IonCard, IonCardHeader, 
-  IonCardTitle, IonCardSubtitle, IonCardContent, IonButtons, IonBackButton, 
-  IonGrid, IonRow, IonCol, IonIcon, IonChip, IonTextarea, IonToast 
+  IonCardTitle, IonCardContent, IonButtons, IonBackButton, IonGrid, IonRow, 
+  IonCol, IonIcon, IonChip, IonTextarea, IonToast 
 } from '@ionic/angular/standalone';
 import { InventarioService } from '../services/inventario.service';
 import { Router } from '@angular/router';
@@ -13,21 +13,9 @@ import { Inventario } from '../interface';
 import { ToastController } from '@ionic/angular';
 import { addIcons } from 'ionicons';
 import {
-  checkmarkCircle,
-  closeCircle,
-  construct,
-  notificationsOutline,
-  mailOutline,
-  logOutOutline,
-  arrowForwardOutline,
-  createOutline,
-  // 👇 nuevos + reales en tu template
-  add,
-  barcode,
-  cube,
-  pricetag,
-  reader,
-  albums,
+  checkmarkCircle, closeCircle, construct, notificationsOutline, mailOutline, 
+  logOutOutline, arrowForwardOutline, createOutline, add, barcode, cube, pricetag, 
+  reader, albums
 } from 'ionicons/icons';
 
 addIcons({
@@ -65,6 +53,9 @@ export class Tab4AdminPage implements OnInit {
   private toastController = inject(ToastController);
   private router = inject(Router);
 
+    equipoId: string = ''; // Nueva propiedad para almacenar el ID del equipo
+  isEditing: boolean = false;
+
   readonly categorias: string[] = [
     'Herramientas',
     'Proyectores',
@@ -84,19 +75,22 @@ export class Tab4AdminPage implements OnInit {
     imagenes: [],
   };
 
+  equipoOriginal: Inventario = { ...this.equipo }; // Clonado al inicio
+
   selectedFiles: File[] = [];
   imagenesPreview: string[] = [];
 
-  constructor() { }
+  constructor() {
+      addIcons({closeCircle,add,cube,pricetag,reader,albums,barcode,checkmarkCircle,construct});}
 
-  ngOnInit() { }
+  ngOnInit() {}
 
   onFileSelected(event: Event): void {
     const input = event.target as HTMLInputElement;
     if (!input.files || input.files.length === 0) return;
 
     const files = Array.from(input.files);
-    
+
     if (this.imagenesPreview.length + files.length > 5) {
       this.presentToast('Máximo 5 imágenes permitidas', 'warning');
       return;
@@ -142,29 +136,33 @@ export class Tab4AdminPage implements OnInit {
       return;
     }
 
+    const cambios: Partial<Inventario> = {};
+    for (const key in this.equipo) {
+      if ((this.equipo as any)[key] !== (this.equipoOriginal as any)[key]) {
+        (cambios as any)[key] = (this.equipo as any)[key];
+      }
+    }
+
     const formData = new FormData();
-    formData.append('name', this.equipo.name);
-    formData.append('model', this.equipo.model);
-    formData.append('description', this.equipo.description);
-    formData.append('categoria', this.equipo.categoria);
-    formData.append('nseries', this.equipo.nseries);
-    formData.append('estado', this.equipo.estado);
+    for (const key in cambios) {
+      formData.append(key, (cambios as any)[key]);
+    }
 
     this.selectedFiles.forEach((file, index) => {
       formData.append('imagenes', file, `imagen-${index}-${file.name}`);
     });
 
-this.inventarioService.registrarEquipoConImagenes(formData).subscribe(
-  (response: any) => {
-    this.presentToast('Equipo registrado correctamente', 'success');
-    this.limpiarFormulario();
-    this.router.navigate(['/tabs-Admin/tab4']);
-  },
-  (error: any) => {
-    console.error('Error al registrar equipo:', error);
-    this.presentToast('Error al registrar equipo', 'danger');
-  }
-);
+    this.inventarioService.registrarEquipoConImagenes(formData).subscribe(
+      (response: any) => {
+        this.presentToast('Equipo registrado correctamente', 'success');
+        this.limpiarFormulario();
+        this.router.navigate(['/tabs-Admin/tab4']);
+      },
+      (error: any) => {
+        console.error('Error al registrar equipo:', error);
+        this.presentToast('Error al registrar equipo', 'danger');
+      }
+    );
   }
 
   abrirSelector(): void {
@@ -182,6 +180,7 @@ this.inventarioService.registrarEquipoConImagenes(formData).subscribe(
       estado: 'Disponible',
       imagenes: [],
     };
+    this.equipoOriginal = { ...this.equipo };
     this.selectedFiles = [];
     this.imagenesPreview = [];
   }

@@ -31,9 +31,14 @@ export const routes: Routes = [
         loadComponent: () =>
           import('../tab5-admin/tab5-admin.page').then((m) => m.Tab5AdminPage),
       },
+        {
+    path: 'addAdmin',
+    loadComponent: () => import('../addadmin/addadmin.page').then( m => m.AddadminPage)
+  },
+{ path: 'edit-material/:id', loadComponent: () => import('../edit-material/edit-material.page').then(m => m.EditMaterialPage) },
       {
         path: '',
-        redirectTo: 'tab1',  
+        redirectTo: '/login',  
         pathMatch: 'full',
       },
     ],

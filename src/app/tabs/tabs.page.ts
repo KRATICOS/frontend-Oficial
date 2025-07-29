@@ -17,13 +17,16 @@ export class TabsPage {
   selectedTab: string = 'tab1';
 
 
-  onTabChange(event: any) {
-    const selectedTab = event.tab;
+onTabChange(event: any) {
+  // Quitar el foco manualmente
+  (document.activeElement as HTMLElement)?.blur();
 
-    if (selectedTab === 'tab2') {
-      this.router.navigateByUrl('/tabs/tab2', { replaceUrl: true });
-    }
+  const selectedTab = event.tab;
+  if (selectedTab === 'tab2') {
+    this.router.navigateByUrl('/tabs/tab2', { replaceUrl: true });
   }
+}
+
 
   constructor(private router: Router) {
     addIcons({ triangle, ellipse, square, filterCircleOutline, qrCodeOutline, personCircleOutline});
