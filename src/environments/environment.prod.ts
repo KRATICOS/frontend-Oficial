@@ -1,6 +1,6 @@
 export const environment = {
   production: true,
-  apiUrl: 'http://localhost:3001/',
+  apiUrl: 'https://backend-oficial-env.up.railway.app/',
   endpoints: {
     historial: 'api/historial',
     usuario: 'api/usuarios',
