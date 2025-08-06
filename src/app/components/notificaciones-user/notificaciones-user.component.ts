@@ -86,8 +86,8 @@ export class NotificacionesUserComponent implements OnInit {
 
   private getNewNotifications(): NotificacionReserva[] {
     return this.notificaciones.filter(n => 
-      !n.leida && (n.estado === 'Aprobado' || n.estado === 'Rechazado' || 
-      n.estado === 'Devolución Confirmada' || n.estado === 'Devolución Rechazada')
+      !n.leida && (n.estado === 'Aprobado' || n.estado === 'Rechazado'
+)
     );
   }
 
@@ -114,14 +114,21 @@ export class NotificacionesUserComponent implements OnInit {
     }
   }
 
+
 private getNotificationContent(notification: NotificacionReserva): { title: string, body: string } {
-  // Handle return notifications first
-  if (notification.tipo === 'devolucion') {
+  // Notificación de tiempo restante (3 minutos)
+  if (notification.extra?.type === 'devolucion-proxima') {
     return { 
-      title: notification.estado === 'Aprobado' ? 'Devolución Aceptada' : 'Devolución Rechazada',
-      body: notification.estado === 'Aprobado'
-        ? `El administrador ha confirmado la devolución de ${notification.equipoNombre}`
-        : `El administrador ha rechazado la devolución de ${notification.equipoNombre}`
+      title: 'Devolución Próxima',
+      body: `Tienes ${notification.extra.minutosRestantes} minutos para devolver ${notification.equipoNombre}`
+    };
+  }
+
+  // Notificación de tiempo vencido
+  if (notification.extra?.type === 'devolucion-vencida') {
+    return { 
+      title: 'Devolución Vencida',
+      body: `La devolución de ${notification.equipoNombre} está vencida por ${notification.extra.minutosVencidos} minutos`
     };
   }
 
@@ -136,16 +143,6 @@ private getNotificationContent(notification: NotificacionReserva): { title: stri
       return { 
         title: 'Reserva Rechazada',
         body: `Tu reserva para ${notification.equipoNombre} ha sido rechazada` 
-      };
-    case 'Devolución Confirmada':
-      return { 
-        title: 'Devolución Próxima',
-        body: `Tienes poco tiempo para devolver ${notification.equipoNombre}` 
-      };
-    case 'Devolución Rechazada':
-      return { 
-        title: 'Devolución Vencida',
-        body: `La devolución de ${notification.equipoNombre} está vencida` 
       };
     case 'Pendiente':
       return notification.tipo === 'qr'
@@ -171,41 +168,48 @@ private getNotificationContent(notification: NotificacionReserva): { title: stri
     this.showToast = true;
   }
 
-  private async setupPushListeners() {
-    try {
-      LocalNotifications.addListener('localNotificationActionPerformed', (notification) => {
-        const notificationId = notification.notification.extra?.notificationId;
-        if (notificationId) {
-          this.notificationService.marcarComoLeida(notificationId);
+  
+  private setupPushListeners() {
+  try {
+    LocalNotifications.addListener('localNotificationActionPerformed', (notification) => {
+      const notificationId = notification.notification.extra?.notificationId;
+      if (notificationId) {
+        this.notificationService.marcarComoLeida(notificationId);
+        
+        // Manejar acciones específicas para notificaciones de devolución
+        const type = notification.notification.extra?.type;
+        if (type === 'devolucion-vencida') {
+          // Podrías navegar a una pantalla de devolución o mostrar un mensaje
+          this.showToastMessage('¡Por favor devuelve el equipo inmediatamente!', 'danger');
         }
-      });
-    } catch (error) {
-      console.error('Error configurando listeners de notificaciones:', error);
-    }
+      }
+    });
+  } catch (error) {
+    console.error('Error configurando listeners de notificaciones:', error);
   }
+}
 
-  getIconForEstado(estado: string): string {
-    switch(estado) {
-      case 'Aprobado': return 'checkmark-circle';
-      case 'Rechazado': return 'close-circle';
-      case 'Pendiente': return 'time';
-      case 'Devolución Próxima': return 'alarm';
-      case 'Devolución Vencida': return 'alarm';
-      default: return 'notifications';
-    }
+getIconForEstado(estado: string): string {
+  switch(estado) {
+    case 'Aprobado': return 'checkmark-circle';
+    case 'Rechazado': return 'close-circle';
+    case 'Pendiente': return 'time';
+    case 'Devolución Próxima': return 'alarm';
+    case 'Devolución Vencida': return 'alarm';
+    default: return 'notifications';
   }
+}
 
-  getColorForEstado(estado: string): string {
-    switch(estado) {
-      case 'Aprobado': return 'success';
-      case 'Rechazado': return 'danger';
-      case 'Pendiente': return 'warning';
-      case 'Devolución Próxima': return 'warning';
-      case 'Devolución Vencida': return 'danger';
-      default: return 'medium';
-    }
+getColorForEstado(estado: string): string {
+  switch(estado) {
+    case 'Aprobado': return 'success';
+    case 'Rechazado': return 'danger';
+    case 'Pendiente': return 'warning';
+    case 'Devolución Próxima': return 'warning';
+    case 'Devolución Vencida': return 'danger';
+    default: return 'medium';
   }
-
+}
   async markAsRead(notification: NotificacionReserva) {
     try {
       this.notificationService.marcarComoLeida(notification._id);

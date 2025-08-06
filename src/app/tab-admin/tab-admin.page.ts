@@ -4,69 +4,106 @@ import { FormsModule } from '@angular/forms';
 import {
   IonContent, IonHeader, IonTitle, IonToolbar, IonLabel, IonItem,
   IonButton, IonModal, IonList, IonInput, IonRow, IonCol, IonGrid,
-  IonText, IonButtons, IonCard
-} from '@ionic/angular/standalone';
+  IonText, IonButtons, IonCard, IonBadge, IonListHeader, IonSpinner, IonIcon } from '@ionic/angular/standalone';
 import { HistorialService } from '../services/historial.service';
 import { Registro, Usuario, Inventario } from '../interface';
 import { ServiceService } from '../services/service.service';
 import { InventarioService } from '../services/inventario.service';
+import { DatePipe } from '@angular/common';
 
 @Component({
   selector: 'app-tab-admin',
   templateUrl: './tab-admin.page.html',
   styleUrls: ['./tab-admin.page.scss'],
   standalone: true,
-  imports: [
-     CommonModule, FormsModule,
-    IonContent, IonHeader, IonTitle, IonToolbar, IonRow, IonCol, IonGrid,
-  ]
+  imports: [IonIcon, IonSpinner, 
+    IonBadge, IonListHeader,
+    CommonModule, FormsModule,
+    IonContent, IonHeader, IonTitle, IonToolbar,
+    IonLabel, IonItem, IonButton, IonModal, IonList, IonText, IonButtons,
+  ],
+  providers: [DatePipe]
 })
 export class TabAdminPage implements OnInit {
-
   private historialService = inject(HistorialService);
   private usuarioService = inject(ServiceService);
   private inventarioService = inject(InventarioService);
+  private datePipe = inject(DatePipe);
 
   registros: Registro[] = [];
   selectedRegistro: Registro | null = null;
   selectedUsuario: Usuario | null = null;
   selectedInventario: Inventario | null = null;
+  isLoading: boolean = true;
 
   ngOnInit() {
     this.obtenerMaterialUso();
   }
 
   obtenerMaterialUso() {
+    this.isLoading = true;
     this.historialService.materialesEnUso().subscribe({
-      next: (res) => {
-        this.registros = res;
+      next: (res: Registro[]) => {
+        this.registros = this.filtrarRegistrosUnicos(res);
+        this.isLoading = false;
       },
       error: (err) => {
         console.error('Error al obtener registros:', err);
+        this.isLoading = false;
       }
     });
   }
 
+private filtrarRegistrosUnicos(registros: Registro[]): Registro[] {
+  if (!registros || registros.length === 0) return [];
+
+  const materialesUnicos = new Map<string, Registro>();
+  
+  // Ordenar por fecha más reciente primero
+  const registrosOrdenados = [...registros].sort((a, b) => {
+    const fechaA = a.fechaPrestamo ? new Date(a.fechaPrestamo).getTime() : 0;
+    const fechaB = b.fechaPrestamo ? new Date(b.fechaPrestamo).getTime() : 0;
+    return fechaB - fechaA;
+  });
+
+  registrosOrdenados.forEach(registro => {
+    if (!registro) return;
+
+    const inventarioId = typeof registro.inventarioId === 'string' 
+      ? registro.inventarioId 
+      : registro.inventarioId?._id;
+    
+    // Validar que sea un registro activo de material ocupado
+    if (inventarioId && !materialesUnicos.has(inventarioId)) {
+      const esActivo = !registro.horaDevolucion && 
+                      (registro.estado === 'Ocupado' || 
+                      (registro.inventarioId && typeof registro.inventarioId !== 'string' && 
+                       registro.inventarioId.estado === 'Ocupado'));
+      
+      if (esActivo) {
+        materialesUnicos.set(inventarioId, registro);
+      }
+    }
+  });
+  
+  return Array.from(materialesUnicos.values());
+}
+
   async verDetalles(registro: Registro) {
     try {
       this.selectedRegistro = registro;
+      this.selectedUsuario = null;
+      this.selectedInventario = null;
 
       const usuarioId = (registro.usuarioId as Usuario)?._id || (registro.usuarioId as string);
       const inventarioId = (registro.inventarioId as Inventario)?._id || (registro.inventarioId as string);
 
       if (usuarioId) {
-        const usuario = await this.usuarioService.getUserById(usuarioId).toPromise();
-        this.selectedUsuario = usuario ?? null;
+        this.selectedUsuario = await this.usuarioService.getUserById(usuarioId).toPromise() ?? null;
       }
 
       if (inventarioId) {
-        const inventario = await this.inventarioService.EquiposId(inventarioId).toPromise();
-        this.selectedInventario = inventario ?? null;
-      }
-
-      const modal = document.getElementById('detalleModal') as HTMLIonModalElement;
-      if (modal) {
-        await modal.present();
+        this.selectedInventario = await this.inventarioService.EquiposId(inventarioId).toPromise() ?? null;
       }
     } catch (error) {
       console.error('Error al cargar detalles:', error);
@@ -74,47 +111,43 @@ export class TabAdminPage implements OnInit {
   }
 
   getCodigo(registro: Registro): string {
-  if (registro.inventarioId && typeof registro.inventarioId !== 'string') {
-    return registro.inventarioId.nseries;
+    if (!registro.inventarioId) return 'Sin código';
+    return typeof registro.inventarioId === 'string' 
+      ? 'Cargando...' 
+      : registro.inventarioId.nseries || 'Sin código';
   }
-  return 'Sin código';
-}
 
-getEstadoColor(estado: string): string {
-  switch (estado) {
-    case 'Disponible': return '#2dd36f'; // success (verde)
-    case 'Ocupado': return '#ffc409';    // warning (amarillo)
-    case 'En Mantenimiento': return '#eb445a'; // danger (rojo)
-    default: return '#92949c';           // medium (gris)
+  getEstadoBadgeColor(estado: string | undefined): string {
+    switch (estado) {
+      case 'Disponible': return 'success';
+      case 'Ocupado': return 'warning';
+      case 'En Mantenimiento': return 'danger';
+      default: return 'medium';
+    }
   }
-}
+
+  getNombreUsuario(registro: Registro): string {
+    if (!registro.usuarioId) return 'No disponible';
+    return typeof registro.usuarioId === 'string' 
+      ? 'Cargando...' 
+      : registro.usuarioId.name || 'No disponible';
+  }
+
+  getGrupoUsuario(registro: Registro): string {
+    if (!registro.usuarioId) return 'No disponible';
+    return typeof registro.usuarioId === 'string' 
+      ? 'Cargando...' 
+      : registro.usuarioId.grupo || 'No disponible';
+  }
+
+  formatFecha(fecha: string | Date | undefined): string {
+    if (!fecha) return 'Sin fecha';
+    return this.datePipe.transform(fecha, 'mediumDate') || 'Fecha inválida';
+  }
 
   cerrarModal() {
-    const modal = document.getElementById('detalleModal') as HTMLIonModalElement;
-    if (modal) {
-      modal.dismiss();
-    }
     this.selectedRegistro = null;
     this.selectedUsuario = null;
     this.selectedInventario = null;
   }
-
-
-getNombreUsuario(registro: Registro): string {
-  if (registro.usuarioId && typeof registro.usuarioId !== 'string') {
-    return registro.usuarioId.name ?? 'No disponible';
-  }
-  return 'No disponible';
 }
-
-getGrupoUsuario(registro: Registro): string {
-  if (registro.usuarioId && typeof registro.usuarioId !== 'string') {
-    return registro.usuarioId.grupo ?? 'No disponible';
-  }
-  return 'No disponible';
-}
-
-}
-
-
-

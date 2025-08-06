@@ -42,7 +42,7 @@ addIcons({
   schemas: [CUSTOM_ELEMENTS_SCHEMA],
   standalone: true,
   imports: [
-    IonChip, IonIcon, IonCol, IonRow, IonGrid, IonBackButton, IonButtons, 
+    IonChip, IonIcon, IonCol, IonRow, IonGrid,
     IonCardContent, IonCardTitle, IonCardHeader, IonCard, IonHeader, IonToolbar, 
     IonTitle, IonList, CommonModule, FormsModule, IonContent, IonButton, IonItem, 
     IonLabel, IonInput, IonTextarea, IonSelect, IonSelectOption

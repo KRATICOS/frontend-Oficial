@@ -123,9 +123,18 @@ obtenerHistorialCompleto(): Observable<Registro[]> {
 }
 
 
-  materialesEnUso(): Observable<any[]> {
-    return this.http.get<any[]>(`${this.baseUrl}/Ocupado`, this.getHeaders());
-  }
+  materialesEnUso(): Observable<Registro[]> {
+  return this.http.get<Registro[]>(`${this.baseUrl}/Ocupado`, this.getHeaders()).pipe(
+    map(registros => {
+      // Filtrar solo registros activos sin devolución y con estado Ocupado
+      return registros.filter(registro => 
+        !registro.horaDevolucion && 
+        registro.estado === 'Ocupado'
+      );
+    }),
+    catchError(() => of([]))
+  );
+}
 
   registrarPrestamoQR(data: {
     inventarioId: string;

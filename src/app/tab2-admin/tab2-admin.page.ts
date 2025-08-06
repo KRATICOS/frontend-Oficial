@@ -3,9 +3,8 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import {
   IonContent, IonHeader, IonTitle, IonToolbar, IonButton, IonItem, IonLabel,
-  IonList, IonBackButton, IonButtons, IonModal, IonRow, IonGrid, IonCol, IonIcon, 
-  IonCard, IonCardHeader, IonCardTitle, IonCardSubtitle, IonCardContent, IonAvatar, 
-  IonItemDivider, IonTabButton, IonTabs, IonTabBar, IonTab, IonItemGroup, IonBadge, IonSegmentButton, IonSegment, IonText } from '@ionic/angular/standalone';
+  IonList, IonButtons, IonModal, IonRow, IonGrid, IonCol, IonIcon,  
+  IonItemDivider } from '@ionic/angular/standalone';
 import { HistorialService } from '../services/historial.service';
 import { Registro, Usuario, Inventario } from '../interface';
 import { ServiceService } from '../services/service.service';

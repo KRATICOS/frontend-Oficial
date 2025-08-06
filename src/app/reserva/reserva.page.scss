@@ -120,4 +120,10 @@ ion-card {
   .mosaic-grid {
     gap: 14px;
   }
+
+  ion-list {
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  margin-top: 10px;
+}
 }

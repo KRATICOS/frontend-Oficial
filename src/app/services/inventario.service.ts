@@ -149,14 +149,40 @@ export class InventarioService {
     return this.http.delete<void>(`${this.baseUrl}/${id}`);
   }
 
-  actualizarEquipo(id: string, data: Inventario | FormData): Observable<any> {
-    let headers = new HttpHeaders();
+actualizarEquipo(id: string, data: Partial<Inventario> | FormData): Observable<Inventario> {
+  let headers = new HttpHeaders();
 
-    if (!(data instanceof FormData)) {
-      headers = headers.set('Content-Type', 'application/json');
+  if (!(data instanceof FormData)) {
+    headers = headers.set('Content-Type', 'application/json');
+    // Asegurar que el campo reservaBloqueada sea booleano
+    if ('reservaBloqueada' in data) {
+      data.reservaBloqueada = Boolean(data.reservaBloqueada);
     }
+  }
 
-    return this.http.put(`${this.baseUrl}/${id}`, data, { headers });
+  return this.http.put<Inventario>(`${this.baseUrl}/${id}`, data, { headers });
+}
+
+
+  actualizarEstadoBloqueo(id: string, estado: boolean): Observable<boolean> {
+    return new Observable(subscriber => {
+      try {
+        // Obtener el estado actual de localStorage
+        const equiposBloqueadosStr = localStorage.getItem('equiposBloqueados');
+        const equiposBloqueados: Record<string, boolean> = equiposBloqueadosStr 
+          ? JSON.parse(equiposBloqueadosStr) 
+          : {};
+        
+        // Actualizar el estado
+        equiposBloqueados[id] = estado;
+        localStorage.setItem('equiposBloqueados', JSON.stringify(equiposBloqueados));
+        
+        subscriber.next(estado);
+        subscriber.complete();
+      } catch (error) {
+        subscriber.error(error);
+      }
+    });
   }
 
   obtenerPorCategoria(categoria: string): Observable<Inventario[]> {
@@ -171,15 +197,19 @@ export class InventarioService {
     return this.http.put<Inventario>(`${this.baseUrl}/${id}`, { estado });
   }
 
-
-    async actualizarEstadoAutomatico(id: string, estado: string): Promise<void> {
-    try {
-      await firstValueFrom(this.ActualizarEquipos(id, { estado: estado as 'Disponible' | 'Ocupado' | 'En Mantenimiento' }));
-
-      console.log(`Estado actualizado a ${estado} para equipo ${id}`);
-    } catch (error) {
-      console.error('Error actualizando estado automático:', error);
-    }
+    getEstadoBloqueo(id: string): boolean {
+    const equiposBloqueadosStr = localStorage.getItem('equiposBloqueados');
+    if (!equiposBloqueadosStr) return false;
+    
+    const equiposBloqueados: Record<string, boolean> = JSON.parse(equiposBloqueadosStr);
+    return equiposBloqueados[id] || false;
   }
+
+
+
+
+
+
+
 
 }

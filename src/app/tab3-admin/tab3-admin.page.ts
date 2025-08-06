@@ -7,11 +7,12 @@ import {
   IonCol, IonButton, IonIcon, IonItem, IonSelectOption, IonLabel, IonText,
   IonFab, IonFabButton, IonSearchbar, IonSelect
 } from '@ionic/angular/standalone';
-
+import { firstValueFrom } from 'rxjs';
+import { Inventario } from '../interface';
 import { addIcons } from 'ionicons';
 import { InventarioService } from '../services/inventario.service';
 import { Router, ActivatedRoute } from '@angular/router';
-import { ellipsisVerticalOutline, trashOutline, filter, createOutline } from 'ionicons/icons';
+import { ellipsisVerticalOutline, trashOutline, filter, createOutline, lockClosed, lockOpen } from 'ionicons/icons';
 
 @Component({
   selector: 'app-tab3-admin',
@@ -19,7 +20,7 @@ import { ellipsisVerticalOutline, trashOutline, filter, createOutline } from 'io
   styleUrls: ['./tab3-admin.page.scss'],
   standalone: true,
   imports: [
-    IonSearchbar, IonSelect, IonText, IonLabel, IonItem, IonIcon, IonButton, IonCol,
+    IonSearchbar, IonSelect, IonText, IonItem, IonIcon, IonButton, IonCol,
     IonCard, IonContent, IonImg, IonCardTitle, IonCardHeader, IonCardSubtitle,
     IonCardContent, IonBadge, IonRow, IonGrid, CommonModule, FormsModule,
     IonSelectOption, ReactiveFormsModule
@@ -29,7 +30,7 @@ export class Tab3AdminPage implements OnInit {
   @ViewChild('categoriaSelect', { static: false }) categoriaSelect!: IonSelect;
 
   equipos: any[] = [];
-  equiposOriginales: any[] = [];
+   equiposOriginales: Inventario[] = []; 
 
   searchTerm = '';
   estadoSeleccionado = '';
@@ -48,9 +49,11 @@ export class Tab3AdminPage implements OnInit {
   private router = inject(Router);
   private route = inject(ActivatedRoute);
 
+
+
   constructor() {
-    addIcons({ filter, trashOutline, ellipsisVerticalOutline, createOutline });
-  }
+      addIcons({ filter, trashOutline, ellipsisVerticalOutline, createOutline, lockClosed, lockOpen });
+}
 
   ngOnInit() {
     this.obtenerEquipos();
@@ -58,10 +61,19 @@ export class Tab3AdminPage implements OnInit {
 
 
 
-  obtenerEquipos() {
+ obtenerEquipos() {
     this.inventarioService.Equipos().subscribe({
-      next: (res) => {
-        this.equiposOriginales = res;
+      next: (res: Inventario[]) => {
+        const equiposBloqueadosStr = localStorage.getItem('equiposBloqueados');
+        const equiposBloqueados: Record<string, boolean> = equiposBloqueadosStr ? JSON.parse(equiposBloqueadosStr) : {};
+        
+        this.equiposOriginales = res.map(equipo => {
+          if (equipo._id && equiposBloqueados[equipo._id] !== undefined) {
+            equipo.reservaBloqueada = equiposBloqueados[equipo._id];
+          }
+          return equipo;
+        });
+        
         this.aplicarFiltros();
         console.log('Equipos cargados:', this.equipos);
       },
@@ -189,6 +201,45 @@ export class Tab3AdminPage implements OnInit {
     `);
     ventana.document.close();
   }
+
+
+
+async toggleBloqueoReserva(equipo: Inventario) {
+    try {
+      if (!equipo._id) throw new Error('ID del equipo no definido');
+      
+      const nuevoEstado = !equipo.reservaBloqueada;
+      
+      // 1. Actualizar en la base de datos
+      await firstValueFrom(
+        this.inventarioService.actualizarEstadoBloqueo(equipo._id, nuevoEstado)
+      );
+      
+      // 2. Actualizar en el estado local
+      equipo.reservaBloqueada = nuevoEstado;
+      
+      // 3. Actualizar en el array original
+      const index = this.equiposOriginales.findIndex(e => e._id === equipo._id);
+      if (index !== -1) {
+        this.equiposOriginales[index].reservaBloqueada = nuevoEstado;
+      }
+      
+      // 4. Actualizar en localStorage
+      const equiposBloqueadosStr = localStorage.getItem('equiposBloqueados');
+      const equiposBloqueados: Record<string, boolean> = equiposBloqueadosStr ? JSON.parse(equiposBloqueadosStr) : {};
+      equiposBloqueados[equipo._id] = nuevoEstado;
+      localStorage.setItem('equiposBloqueados', JSON.stringify(equiposBloqueados));
+      
+      const mensaje = nuevoEstado 
+        ? 'Reservas bloqueadas para este equipo' 
+        : 'Reservas habilitadas para este equipo';
+      alert(mensaje);
+    } catch (error) {
+      console.error('Error al actualizar estado de bloqueo:', error);
+      alert('Error al actualizar estado de bloqueo');
+    }
+  }
+  
 
   verDetalles(id: string) {
     console.log('Equipo seleccionado:', id);

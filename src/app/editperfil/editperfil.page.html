@@ -1,27 +1,30 @@
 <ion-header>
   <ion-toolbar color="primary">
-    <ion-buttons slot="start">
-      <ion-back-button defaultHref="/tabs/tab3"></ion-back-button>
-    </ion-buttons>
     <ion-title>Editar Perfil</ion-title>
   </ion-toolbar>
 </ion-header>
 
 <ion-content class="ion-padding">
   <ion-card>
-    <ion-card-header class="avatar-container">
-      <div class="avatar-wrapper">
-        <ion-avatar class="profile-avatar">
-          <img [src]="previewImage || 'assets/utvcoIMAGEN.jpg'" alt="Foto de perfil" />
-        </ion-avatar>
+<ion-card-header class="avatar-container">
+  <div class="avatar-wrapper">
+    <ion-avatar class="profile-avatar">
+      <img [src]="previewImage || 'assets/utvcoIMAGEN.jpg'" alt="Foto de perfil" />
+    </ion-avatar>
 
-        <ion-button fill="clear" class="upload-btn" (click)="fileInput.click()" size="small">
-          <ion-icon name="image-outline"></ion-icon>
-        </ion-button>
+    <ion-buttons class="avatar-buttons">
+      <ion-button fill="clear" (click)="fileInput.click()" size="small">
+        <ion-icon name="image-outline"></ion-icon>
+      </ion-button>
 
-        <input type="file" hidden #fileInput (change)="onFileSelected($event)" accept="image/*" />
-      </div>
-    </ion-card-header>
+      <ion-button fill="clear" color="danger" size="small" *ngIf="previewImage" (click)="deleteCurrentImage()">
+        <ion-icon name="trash"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+
+    <input type="file" hidden #fileInput (change)="onFileSelected($event)" accept="image/*" />
+  </div>
+</ion-card-header>
 
     <ion-card-content>
       <form [formGroup]="userForm" (ngSubmit)="onSubmit()">
@@ -83,4 +86,9 @@
       </form>
     </ion-card-content>
   </ion-card>
+
+
+
+
+  
 </ion-content>

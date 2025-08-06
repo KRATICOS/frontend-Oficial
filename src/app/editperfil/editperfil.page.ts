@@ -1,4 +1,4 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { CUSTOM_ELEMENTS_SCHEMA, Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import {
   FormBuilder,
@@ -30,7 +30,7 @@ import { RouterModule, Router } from '@angular/router';
 import { ServiceService } from 'src/app/services/service.service';
 import { Usuario } from 'src/app/interface';
 import { addIcons } from 'ionicons';
-import { cameraOutline, checkmarkCircle, closeCircle, construct, imageOutline, navigate, save, trash,close } from 'ionicons/icons';
+import { cameraOutline, checkmarkCircle, closeCircle, construct, imageOutline, navigate, save, trash,close, add, trashOutline, arrowBackOutline } from 'ionicons/icons';
 
 
 
@@ -47,6 +47,7 @@ addIcons({
   selector: 'app-edit-profile',
   templateUrl: './editperfil.page.html',
   styleUrls: ['./editperfil.page.scss'],
+  schemas:[CUSTOM_ELEMENTS_SCHEMA],
   standalone: true,
   imports: [IonList,
     CommonModule,
@@ -71,11 +72,14 @@ addIcons({
 })
 export class EditperfilPage implements OnInit {
   userForm!: FormGroup;
+  Usuario!: Usuario;
   selectedFiles: File[] = [];
   userId!: string;
   previewImage: string | null = null; // Simplificado a solo string
   currentUser!: Usuario;
   isAdmin: boolean = false;
+    imagenesPreview: string[] = [];   // urls + previews
+  imagenesAEliminar: string[] = []; // ids en BD a borrar
 
   private serviceService = inject(ServiceService);
 
@@ -114,67 +118,6 @@ export class EditperfilPage implements OnInit {
       this.userForm.get('tel')?.setValidators([Validators.required]);
       this.userForm.get('matricula')?.setValidators([Validators.required]);
       this.userForm.get('grupo')?.setValidators([Validators.required]);
-    }
-  }
-
-  loadUser() {
-    this.userService.getUserById(this.userId).subscribe({
-      next: (user) => {
-        this.currentUser = user;
-        this.userForm.patchValue({
-          name: user.name,
-          email: user.email,
-          tel: user.tel,
-          matricula: user.matricula,
-          grupo: user.grupo,
-          rol: user.rol
-        });
-
-        if (user.imagen) {
-          if (Array.isArray(user.imagen) && user.imagen.length > 0) {
-            this.previewImage = user.imagen[0];
-          } else if (typeof user.imagen === 'string') {
-            this.previewImage = user.imagen;
-          } else {
-            this.previewImage = null;
-          }
-        } else {
-          this.previewImage = null;
-        }
-      },
-      error: (err) => console.error(err),
-    });
-  }
-
-  clearForm() {
-    this.userForm.reset({
-      rol: this.currentUser.rol
-    });
-
-    if (this.currentUser.imagen) {
-      if (Array.isArray(this.currentUser.imagen) && this.currentUser.imagen.length > 0) {
-        this.previewImage = this.currentUser.imagen[0];
-      } else if (typeof this.currentUser.imagen === 'string') {
-        this.previewImage = this.currentUser.imagen;
-      } else {
-        this.previewImage = null;
-      }
-    } else {
-      this.previewImage = null;
-    }
-
-    this.selectedFiles = [];
-  }
-
-  onFileSelected(event: any) {
-    const file = event.target.files[0];
-    if (file) {
-      this.selectedFiles = [file];
-      const reader = new FileReader();
-      reader.onload = () => {
-        this.previewImage = reader.result as string;
-      };
-      reader.readAsDataURL(file);
     }
   }
 
@@ -260,11 +203,130 @@ export class EditperfilPage implements OnInit {
 
 
 cancel() {
-  // Usamos el rol del usuario actual almacenado en la propiedad
   if (this.currentUser?.rol === 'admin') {
     this.router.navigate(['/tabs-Admin/tab5']);
   } else {
     this.router.navigate(['/tabs/tab3']);
   }
 }
+
+
+
+  abrirSelector() {
+    (document.getElementById('fileInput') as HTMLInputElement).click();
+  }
+
+  private async presentToast(msg: string, color: 'success' | 'warning' | 'danger') {
+    const toast = await this.toastController.create({ message: msg, duration: 2000, color, position: 'top' });
+    await toast.present();
+  }
+
+
+  // Función loadUser actualizada
+loadUser() {
+  this.userService.getUserById(this.userId).subscribe({
+    next: (user) => {
+      this.currentUser = user;
+      this.userForm.patchValue({
+        name: user.name,
+        email: user.email,
+        tel: user.tel,
+        matricula: user.matricula,
+        grupo: user.grupo,
+        rol: user.rol
+      });
+
+      // Limpiar y cargar imágenes preview
+      this.imagenesPreview = [];
+      
+      if (user.imagen && user.imagen.length > 0) {
+        this.imagenesPreview = [...user.imagen]; // Copiamos el array de strings
+      }
+    },
+    error: (err) => console.error(err),
+  });
+}
+
+// Función removeImage actualizada
+removeImage(index: number) {
+  // Verificar si es una imagen existente (del usuario) o nueva (seleccionada)
+  const existentes = this.currentUser.imagen || [];
+  
+  if (index < existentes.length) {
+    // Es una imagen existente - agregar a lista de eliminación
+    // Como es string[], no tenemos _id, usamos el índice o la URL como referencia
+    this.imagenesAEliminar.push(existentes[index]);
+  } else {
+    // Es una imagen nueva - eliminar de selectedFiles
+    const fileIndex = index - existentes.length;
+    this.selectedFiles.splice(fileIndex, 1);
+  }
+  
+  // Eliminar de las previews
+  this.imagenesPreview.splice(index, 1);
+  
+  this.presentToast('Imagen eliminada', 'warning');
+}
+
+// Función clearForm actualizada
+clearForm() {
+  this.userForm.reset({
+    rol: this.currentUser.rol
+  });
+
+  // Restablecer imágenes preview
+  this.imagenesPreview = [];
+  
+  if (this.currentUser.imagen && this.currentUser.imagen.length > 0) {
+    this.imagenesPreview = [...this.currentUser.imagen];
+  }
+
+  this.selectedFiles = [];
+}
+
+
+
+deleteCurrentImage(): void {
+  // Limpia la vista previa
+  this.previewImage = null;
+  
+  // Limpia las imágenes del usuario actual
+  this.currentUser.imagen = []; // Esto funciona tanto para string como para array
+  
+  // Limpia los archivos seleccionados y las vistas previas
+  this.selectedFiles = [];
+  this.imagenesPreview = [];
+  
+  // Actualiza el localStorage para reflejar los cambios
+  localStorage.setItem('User', JSON.stringify(this.currentUser));
+  
+  // Muestra feedback al usuario
+  this.presentToast('Imagen eliminada correctamente', 'warning');
+  
+  // Opcional: Si quieres restaurar la imagen por defecto
+  // this.previewImage = 'assets/utvcoIMAGEN.jpg';
+}
+
+
+// Función onFileSelected se mantiene igual
+onFileSelected(event: Event) {
+  const input = event.target as HTMLInputElement;
+  if (!input.files?.length) return;
+
+  const file = input.files[0];
+  if (!file.type.startsWith('image/')) {
+    this.presentToast('Solo se permiten imágenes', 'warning');
+    return;
+  }
+
+  this.selectedFiles = [file]; // Guarda el archivo seleccionado
+  const reader = new FileReader();
+  reader.onload = e => {
+    this.previewImage = e.target?.result as string;
+  };
+  reader.readAsDataURL(file);
+}
+
+
+
 }

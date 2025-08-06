@@ -11,7 +11,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { interval, lastValueFrom, Subscription, forkJoin, of } from 'rxjs';
 import { switchMap } from 'rxjs/operators';
 import { addIcons } from 'ionicons';
-import { calendar, time, checkmark, close, notifications, qrCode, lockClosed, returnDownBack, warning, checkmarkCircle } from 'ionicons/icons';
+import { calendar, time, checkmark, close, notifications, qrCode, lockClosed, returnDownBack, warning, checkmarkCircle, alertCircle } from 'ionicons/icons';
 import { InventarioService } from '../services/inventario.service';
 import { HistorialService } from '../services/historial.service';
 import { NotificationService, NotificacionReserva } from '../services/notification.service';
@@ -52,12 +52,14 @@ export class ReservaPage implements OnInit, OnDestroy {
   prestamoActivo: any = null;
   horaActual: number = new Date().getHours();
   fechaHoy: string = new Date().toISOString().split('T')[0];
-  
+  reservaBloqueada = false;
   selectedDate: string = new Date().toISOString();
   minDate: string = new Date().toISOString();
   maxDate: string = new Date(new Date().setMonth(new Date().getMonth() + 3)).toISOString();
   durationOptions = [1, 2, 3, 4, 6, 8];
   selectedDuration = 1;
+  selectedRegistro: Registro | null = null; 
+    
 
   
   private bloqueoHorasQR: {[hora: number]: boolean} = {};
@@ -72,21 +74,40 @@ export class ReservaPage implements OnInit, OnDestroy {
   private route = inject(ActivatedRoute);
 
   constructor( private cdr: ChangeDetectorRef,) {
-    addIcons({qrCode,warning,checkmarkCircle,returnDownBack,calendar,time,checkmark,close,notifications,lockClosed});
+    addIcons({qrCode,alertCircle,checkmarkCircle,warning,returnDownBack,calendar,time,checkmark,close,notifications,lockClosed});
   }
 
-  private verificarPrestamoActivo(historial: Registro[]) {
-  this.prestamoActivo = historial.find((registro) =>
-    (registro.inventarioId === this.equipo._id ||
-     (typeof registro.inventarioId === 'object' && registro.inventarioId._id === this.equipo._id)) &&
-    registro.usuarioId === this.currentUser._id &&
-    !registro.horaDevolucion
-  );
+private verificarPrestamoActivo(historial: Registro[]) {
+  console.log('Verificando préstamo...');
+  this.prestamoActivo = historial.find((registro) => {
+    const inventarioId = typeof registro.inventarioId === 'object'
+      ? registro.inventarioId._id
+      : registro.inventarioId;
+
+    const usuarioIdHistorial = typeof registro.usuarioId === 'object'
+      ? registro.usuarioId._id
+      : registro.usuarioId;
+
+    const condicion = inventarioId === this.equipo._id &&
+                      usuarioIdHistorial === this.currentUser._id &&
+                      !registro.horaDevolucion;
+
+    if (condicion) {
+      console.log('Préstamo encontrado:', registro);
+    }
+    return condicion;
+  });
+
+  if (!this.prestamoActivo) {
+    console.log('No se encontró préstamo activo para este usuario y equipo.');
+  }
 }
+
 
   ngOnInit() {
     this.initializePage();
     this.iniciarMonitorHoraActual();
+    this.cargarPrestamoActivo();
   }
 
   ngOnDestroy() {
@@ -156,12 +177,15 @@ export class ReservaPage implements OnInit, OnDestroy {
       this.historialService.obtenerHistorial()
     ]).subscribe({
       next: ([equipo, historial]) => {
-        this.equipo = equipo;
-        this.verificarPrestamoActivo(historial);
-        this.cdr.detectChanges(); 
-        
-        this.actualizarHorasOcupadas(historial, this.notificationService.notificacionesActuales);
-      },
+  this.equipo = equipo;
+  this.verificarPrestamoActivo(historial);
+  this.actualizarHorasOcupadas(historial, this.notificationService.notificacionesActuales);
+
+  // 🔁 Recalcular visibilidad del botón de devolución
+  this.mostrarBotonDevolucion = !!this.prestamoActivo && this.prestamoActivo.usuarioId === this.currentUser?._id;
+
+  this.cdr.detectChanges(); 
+},
       error: (err: any) => console.error('Error actualizando datos:', err)
     });
   }
@@ -186,11 +210,20 @@ export class ReservaPage implements OnInit, OnDestroy {
     });
   }
 
-  obtenerEquipo(id: string) {
+obtenerEquipo(id: string) {
     this.isLoading = true;
     this.inventarioService.EquiposId(id).subscribe({
-      next: data => {
+      next: (data: Inventario) => {
         this.equipo = data;
+        
+        // Verificar estado de bloqueo desde múltiples fuentes
+        const equiposBloqueadosStr = localStorage.getItem('equiposBloqueados');
+        const equiposBloqueados: Record<string, boolean> = equiposBloqueadosStr ? JSON.parse(equiposBloqueadosStr) : {};
+        
+        this.reservaBloqueada = id in equiposBloqueados 
+          ? equiposBloqueados[id] 
+          : data.reservaBloqueada || false;
+        
         this.updateHours();
       },
       error: err => {
@@ -200,7 +233,6 @@ export class ReservaPage implements OnInit, OnDestroy {
       }
     });
   }
-
 
 
   async cargarHorasQR(historial?: Registro[], notificaciones?: NotificacionReserva[]): Promise<void> {
@@ -370,19 +402,25 @@ isHourDisabled(hour: number): boolean {
   const selectedDay = new Date(selectedDateObj.getFullYear(), selectedDateObj.getMonth(), selectedDateObj.getDate());
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
-  // 🚫 Si el equipo está en mantenimiento, deshabilita todas las horas
+  // Si el equipo está en mantenimiento, deshabilita todas las horas
   if (this.equipo?.estado === 'En Mantenimiento') {
     return true;
   }
 
-  if (selectedDay < today) return true;
-
-  if (selectedDay.getTime() === today.getTime()) {
-    if (hour < now.getHours()) {
-      return true;
-    }
+  // Si es un día anterior al actual, deshabilita
+  if (selectedDay < today) {
+    return true;
   }
 
+  // Si es el día actual
+  if (selectedDay.getTime() === today.getTime()) {
+    // Permitir la hora actual y 1 hora antes (horaActual - 1)
+    if (hour < now.getHours()) {
+  return true;  // 🔒 bloquear solo horas anteriores a (hora actual - 1)
+}
+  }
+
+  // Deshabilitar si está reservada, aprobada o es QR
   if (this.isHourQR(hour) || this.isHourBooked(hour) || this.isHourApproved(hour)) {
     return true;
   }
@@ -434,13 +472,14 @@ isHourDisabled(hour: number): boolean {
   }
 
 
-  get canReserve(): boolean {
-    return this.selectedHours.length > 0 &&
-           !this.hasBookedHours &&
-           !this.hasApprovedHours &&
-           !this.hasQRHours &&
-           !this.hasPastHours;
-  }
+get canReserve(): boolean {
+  return !this.reservaBloqueada && 
+         this.selectedHours.length > 0 &&
+         !this.hasBookedHours &&
+         !this.hasApprovedHours &&
+         !this.hasQRHours &&
+         !this.hasPastHours;
+}
 
   get puedeDevolver(): boolean {
   return !!this.prestamoActivo && this.prestamoActivo.usuarioId === this.currentUser?._id;
@@ -516,39 +555,6 @@ isHourDisabled(hour: number): boolean {
     }
   }
 
-async registrarDevolucion() {
-  if (!this.currentUser?._id) {
-    this.showToast('Debes iniciar sesión', 'danger');
-    return;
-  }
-
-  if (!this.prestamoActivo || this.prestamoActivo.usuarioId !== this.currentUser._id) {
-    this.showToast('No tienes un préstamo activo de este equipo', 'danger');
-    return;
-  }
-
-  try {
-    await this.notificationService.agregarNotificacion({
-      equipoId: this.equipo._id,
-      equipoNombre: this.equipo.name,
-      usuarioId: this.currentUser._id,
-      usuarioNombre: this.currentUser.name,
-      horaInicio: '', // Opcional: hora actual si gustas
-      horaFin: '',
-      observaciones: this.observaciones || 'Solicitud de devolución del equipo.',
-      estado: 'Pendiente',
-      tipo: 'devolucion'
-    });
-
-    this.showToast('Solicitud de devolución enviada', 'success');
-    this.router.navigate(['/tabs/tab2']);
-  } catch (error) {
-    this.showToast('Error al enviar solicitud de devolución', 'danger');
-    console.error('Error registrando devolución:', error);
-  }
-}
-
-
   async registrarPrestamo() {
     if (!this.canReserve) {
       this.showToast('No se puede realizar la reserva', 'danger');
@@ -592,6 +598,48 @@ async registrarDevolucion() {
     HHH(){
     this.router.navigate(['/tabs/tab1']);
   }
+
+    getNombreUsuario(registro: Registro): string {
+    if (!registro.usuarioId) return 'No disponible';
+    return typeof registro.usuarioId === 'string' 
+      ? 'Cargando...' 
+      : registro.usuarioId.name || 'No disponible';
+  }
+
+  getGrupoUsuario(registro: Registro): string {
+    if (!registro.usuarioId) return 'No disponible';
+    return typeof registro.usuarioId === 'string' 
+      ? 'Cargando...' 
+      : registro.usuarioId.grupo || 'No disponible';
+  }
+
+
+  cargarPrestamoActivo() {
+  this.historialService.materialesEnUso().subscribe({
+    next: (registros: Registro[]) => {
+      const equipoId = typeof this.equipo._id === 'string' ? this.equipo._id : this.equipo?._id;
+      const prestamosEquipo = registros.filter(registro => {
+        const invId = typeof registro.inventarioId === 'string' 
+          ? registro.inventarioId 
+          : registro.inventarioId?._id;
+        const esActivo = !registro.horaDevolucion && 
+                         (registro.estado === 'Ocupado' || 
+                          (registro.inventarioId && typeof registro.inventarioId !== 'string' &&
+                           registro.inventarioId.estado === 'Ocupado'));
+        return invId === equipoId && esActivo;
+      });
+
+      if (prestamosEquipo.length > 0) {
+        this.selectedRegistro = prestamosEquipo[0];
+      } else {
+        this.selectedRegistro = null;
+      }
+    },
+    error: (err) => {
+      console.error('Error cargando préstamo activo:', err);
+    }
+  });
+}
 
 
 

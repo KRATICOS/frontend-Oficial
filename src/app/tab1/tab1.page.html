@@ -20,18 +20,6 @@
       <div class="card-wave"></div>
     </ion-card>
 
-    <ion-card class="option-card" (click)="modoManual()">
-      <div class="card-icon">
-        <ion-icon name="keypad" color="tertiary"></ion-icon>
-      </div>
-      <ion-card-header>
-        <ion-card-title>Ingresar Manualmente</ion-card-title>
-      </ion-card-header>
-      <ion-card-content>
-        Introduce el número de serie del material
-      </ion-card-content>
-      <div class="card-wave"></div>
-    </ion-card>
   </div>
 
   <div *ngIf="mostrarScanner" class="scanner-container animate__animated animate__zoomIn">
@@ -46,15 +34,5 @@
     </ion-button>
   </div>
 
-  <div *ngIf="mostrarInput" class="manual-input animate__animated animate__fadeIn">
-    <ion-item class="input-item">
-      <ion-label position="floating">Número de Serie</ion-label>
-      <ion-input [(ngModel)]="Id" type="text" clearInput></ion-input>
-    </ion-item>
-    <ion-button expand="block" color="primary" (click)="buscarPorNumero()" class="search-button">
-      <ion-icon name="search" slot="start"></ion-icon>
-      Buscar Material
-    </ion-button>
-  </div>
 
 </ion-content>

@@ -47,6 +47,10 @@ import {
 } from 'ionicons/icons';
 import { timeout, catchError } from 'rxjs/operators';
 import { throwError } from 'rxjs';
+import { map } from 'rxjs/operators';
+import { HistorialService } from '../services/historial.service'; // Añadir import
+import { NotificationService } from '../services/notification.service'; // Añadir import
+import { Registro } from '../interface'; // Añadir Registro a la importación
 
 @Component({
   selector: 'app-actualizar-material',
@@ -67,6 +71,8 @@ import { throwError } from 'rxjs';
 export class EditMaterialPage implements OnInit {
 
   private inventarioService = inject(InventarioService);
+  private historialService = inject(HistorialService); // Inyectar servicio
+  private notificationService = inject(NotificationService); // Inyectar servicio
   private toastController = inject(ToastController);
   private loadingController = inject(LoadingController);
   private alertController = inject(AlertController);
@@ -179,6 +185,8 @@ private async cargarEquipo() {
 }
 
 
+
+
 private patchFormValues() {
   this.equipoForm.patchValue({
     name: this.equipo?.name,
@@ -237,10 +245,24 @@ private initForm() {
     this.presentToast('Imagen eliminada', 'warning');
   }
 
-  cambiarEstado(estado: 'Disponible' | 'Ocupado' | 'En Mantenimiento') {
+
+
+  abrirSelector() {
+    (document.getElementById('fileInput') as HTMLInputElement).click();
+  }
+
+  private async presentToast(msg: string, color: 'success' | 'warning' | 'danger') {
+    const toast = await this.toastController.create({ message: msg, duration: 2000, color, position: 'top' });
+    await toast.present();
+  }
+
+
+
+    cambiarEstado(estado: 'Disponible' | 'Ocupado' | 'En Mantenimiento') {
     this.equipoForm.patchValue({ estado });
     this.presentToast(`Estado cambiado a ${estado}`, 'success');
   }
+
 
   async actualizarEquipo() {
     if (this.equipoForm.invalid) {
@@ -258,6 +280,7 @@ private initForm() {
     await loading.present();
 
     try {
+      const nuevoEstado = this.equipoForm.value.estado;
       const fd = new FormData();
       const formValue = this.equipoForm.value;
 
@@ -266,18 +289,19 @@ private initForm() {
       fd.append('description', formValue.description);
       fd.append('categoria', formValue.categoria);
       fd.append('nseries', formValue.nseries);
-      fd.append('estado', formValue.estado);
+      fd.append('estado', nuevoEstado);
 
       this.imagenesAEliminar.forEach(id => fd.append('imagenesAEliminar', id));
       this.selectedFiles.forEach((file, i) => fd.append('nuevasImagenes', file, `img-${i}-${file.name}`));
 
+      // Verificar si el estado está cambiando a algo diferente de "Ocupado"
+      if (this.equipo.estado === 'Ocupado' && nuevoEstado !== 'Ocupado') {
+        await this.finalizarPrestamosActivos();
+      }
+
       await firstValueFrom(this.inventarioService.actualizarEquipo(this.equipoId, fd));
-
-          await loading.dismiss(); // 👈 aseguramos que el loading se cierre ANTES de navegar
-
-    await this.presentToast('Equipo actualizado', 'success');
-
-      this.presentToast('Equipo actualizado', 'success');
+      await loading.dismiss();
+      await this.presentToast('Equipo actualizado', 'success');
       this.router.navigate(['/tabs-Admin/tab3']);
     } catch (error) {
       console.error('Error al actualizar equipo:', error);
@@ -286,6 +310,51 @@ private initForm() {
       await loading.dismiss();
     }
   }
+
+private async finalizarPrestamosActivos(): Promise<void> {
+  try {
+    // Obtener todos los préstamos activos para este material con tipado explícito
+    const prestamosActivos: Registro[] = await firstValueFrom(
+      this.historialService.materialesEnUso().pipe(
+        map((registros: Registro[]) => registros.filter((registro: Registro) => {
+          const inventarioId = typeof registro.inventarioId === 'object' 
+            ? registro.inventarioId._id 
+            : registro.inventarioId;
+          return inventarioId === this.equipoId;
+        }))
+      )
+    );
+
+    // Si no hay préstamos activos, salir
+    if (prestamosActivos.length === 0) {
+      return;
+    }
+
+    // Preparar datos de devolución
+    const ahora = new Date();
+    const horaDevolucion = ahora.toTimeString().split(' ')[0].substring(0, 5);
+    
+    // Procesar cada préstamo activo
+    await Promise.all(
+      prestamosActivos.map(prestamo => 
+        firstValueFrom(
+          this.historialService.registrarDevolucion(
+            prestamo._id, 
+            {
+              horaDevolucion,
+              estado: 'Devuelto'
+            }
+          )
+        )
+      )
+    );
+
+    this.presentToast(`Se finalizaron ${prestamosActivos.length} préstamo(s) activo(s)`, 'warning');
+  } catch (error) {
+    console.error('Error al finalizar préstamos activos:', error);
+    this.presentToast('Error al finalizar préstamos asociados', 'danger');
+  }
+}
 
 
   async confirmarEliminacion() {
@@ -312,14 +381,5 @@ private initForm() {
     } finally {
       await loading.dismiss();
     }
-  }
-
-  abrirSelector() {
-    (document.getElementById('fileInput') as HTMLInputElement).click();
-  }
-
-  private async presentToast(msg: string, color: 'success' | 'warning' | 'danger') {
-    const toast = await this.toastController.create({ message: msg, duration: 2000, color, position: 'top' });
-    await toast.present();
   }
 }

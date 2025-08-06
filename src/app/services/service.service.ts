@@ -5,6 +5,7 @@ import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
 import { Observable, throwError } from 'rxjs';
 import { catchError } from 'rxjs/operators';
+import { forkJoin } from 'rxjs';
 
 
 
@@ -76,6 +77,25 @@ updateUser(userId: string, data: any, isFormData = false): Observable<any> {
   return this.http.put(`${this.baseUrl}/${userId}`, data, { headers }).pipe(
     catchError(this.handleError) // Asegúrate de manejar los errores aquí también
   );
+}
+
+registrarEstudiantesMasivo(estudiantes: any[]): Observable<any> {
+  // Convertimos el array de estudiantes en un array de promesas de registro individual
+  const registros$ = estudiantes.map(estudiante => {
+    const formData = new FormData();
+    formData.append('name', estudiante.name);
+    formData.append('email', estudiante.email);
+    formData.append('password', estudiante.password);
+    formData.append('tel', '0000000000'); // Teléfono por defecto
+    formData.append('rol', 'user');
+    formData.append('matricula', estudiante.matricula);
+    formData.append('grupo', estudiante.grupo);
+    
+    return this.createUser(formData);
+  });
+
+  // Convertimos el array de observables en un solo observable
+  return forkJoin(registros$);
 }
 
 

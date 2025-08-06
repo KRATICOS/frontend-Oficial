@@ -1,6 +1,6 @@
 <ion-header>
   <ion-toolbar>
-    <ion-title>Crear Usuario</ion-title>
+    <ion-title>Registro UTVCO</ion-title>
   </ion-toolbar>
 </ion-header>
 
@@ -23,7 +23,7 @@
       </ion-card-header>
 
       <ion-item>
-        <ion-label position="floating">Nombre</ion-label>
+        <ion-label position="floating">Nombre completo</ion-label>
         <ion-input formControlName="name" required></ion-input>
         <ion-text color="danger" *ngIf="userForm.get('name')?.invalid && userForm.get('name')?.touched">
           Nombre requerido
@@ -31,20 +31,37 @@
       </ion-item>
 
       <ion-item>
-        <ion-label position="floating">Correo</ion-label>
-        <ion-input type="email" formControlName="email" required></ion-input>
-        <ion-text color="danger" *ngIf="userForm.get('email')?.invalid && userForm.get('email')?.touched">
-          Ingresa un correo válido
+        <ion-label position="floating">Correo Institucional</ion-label>
+        <ion-input 
+          type="email" 
+          formControlName="email" 
+          placeholder="matricula@utvco.edu.mx"
+          required>
+        </ion-input>
+        <ion-text color="danger" *ngIf="userForm.get('email')?.errors?.['required'] && userForm.get('email')?.touched">
+          Correo requerido
+        </ion-text>
+        <ion-text color="danger" *ngIf="userForm.get('email')?.errors?.['email'] && userForm.get('email')?.touched">
+          Formato de correo inválido
+        </ion-text>
+        <ion-text color="danger" *ngIf="userForm.get('email')?.errors?.['dominioInvalido'] && userForm.get('email')?.touched">
+          Solo se permiten correos 🌀utvco.edu.mx
+        </ion-text>
+        <ion-text color="danger" *ngIf="userForm.get('email')?.errors?.['matriculaNoCoincide'] && userForm.get('email')?.touched">
+          El correo debe coincidir con tu matrícula (ej: TU12345🌀utvco.edu.mx)
         </ion-text>
       </ion-item>
 
       <ion-item>
         <ion-label position="floating">Contraseña</ion-label>
         <ion-input [type]="passwordFieldType" formControlName="password" required></ion-input>
-                    <ion-button fill="clear" slot="end" (click)="togglePasswordVisibility()">
-              <ion-icon [name]="showPassword ? 'eye-outline' : 'eye-outline'"></ion-icon>
-            </ion-button>
-        <ion-text color="danger" *ngIf="userForm.get('password')?.invalid && userForm.get('password')?.touched">
+        <ion-button fill="clear" slot="end" (click)="togglePasswordVisibility()">
+          <ion-icon [name]="showPassword ? 'eye-outline' : 'eye-outline'"></ion-icon>
+        </ion-button>
+        <ion-text color="danger" *ngIf="userForm.get('password')?.errors?.['required'] && userForm.get('password')?.touched">
+          Contraseña requerida
+        </ion-text>
+        <ion-text color="danger" *ngIf="userForm.get('password')?.errors?.['minlength'] && userForm.get('password')?.touched">
           Mínimo 6 caracteres
         </ion-text>
       </ion-item>
@@ -52,23 +69,43 @@
       <ion-item>
         <ion-label position="floating">Teléfono</ion-label>
         <ion-input type="tel" formControlName="tel" required></ion-input>
-        <ion-text color="danger" *ngIf="userForm.get('tel')?.invalid && userForm.get('tel')?.touched">
-          10 dígitos requeridos
+        <ion-text color="danger" *ngIf="userForm.get('tel')?.errors?.['required'] && userForm.get('tel')?.touched">
+          Teléfono requerido
+        </ion-text>
+        <ion-text color="danger" *ngIf="userForm.get('tel')?.errors?.['pattern'] && userForm.get('tel')?.touched">
+          Debe tener 10 dígitos
         </ion-text>
       </ion-item>
 
-      <ion-item *ngIf="userForm.get('rol')?.value === 'user'">
+      <ion-item>
         <ion-label position="floating">Matrícula</ion-label>
-        <ion-input formControlName="matricula" required></ion-input>
+        <ion-input 
+          formControlName="matricula" 
+          placeholder="Ej: ABC12345"
+          required>
+        </ion-input>
+        <ion-text color="danger" *ngIf="userForm.get('matricula')?.errors?.['required'] && userForm.get('matricula')?.touched">
+          Matrícula requerida
+        </ion-text>
+        <ion-text color="danger" *ngIf="userForm.get('matricula')?.errors?.['pattern'] && userForm.get('matricula')?.touched">
+          Solo caracteres alfanuméricos
+        </ion-text>
       </ion-item>
 
-      <ion-item *ngIf="userForm.get('rol')?.value === 'user'">
+      <ion-item>
         <ion-label position="floating">Grupo</ion-label>
         <ion-input formControlName="grupo" required></ion-input>
+        <ion-text color="danger" *ngIf="userForm.get('grupo')?.invalid && userForm.get('grupo')?.touched">
+          Grupo requerido
+        </ion-text>
       </ion-item>
 
       <ion-item lines="none">
-        <ion-checkbox slot="start" [(ngModel)]="terminosAceptados" [ngModelOptions]="{standalone: true}"></ion-checkbox>
+        <ion-checkbox 
+          slot="start" 
+          [(ngModel)]="terminosAceptados" 
+          [ngModelOptions]="{standalone: true}">
+        </ion-checkbox>
         <ion-label>
           Acepto los 
           <a (click)="mostrarTerminosCondiciones()" class="terms-link">Términos y Condiciones</a>
@@ -76,11 +113,17 @@
       </ion-item>
 
       <div class="btn-group">
-        <ion-button expand="block" color="primary" type="submit"
+        <ion-button 
+          expand="block" 
+          color="primary" 
+          type="submit"
           [disabled]="userForm.invalid || !terminosAceptados">
-          Crear Usuario
+          Registrar
         </ion-button>
-        <ion-button expand="block" color="medium" type="button"
+        <ion-button 
+          expand="block" 
+          color="medium" 
+          type="button"
           (click)="cancelarRegistro()">
           Cancelar
         </ion-button>
@@ -91,31 +134,31 @@
   <ion-modal [isOpen]="mostrandoTerminos" (ionModalDidDismiss)="cerrarModal()">
     <ng-template>
       <ion-header>
-        <ion-toolbar>
-          <ion-title>Términos y Condiciones</ion-title>
+        <ion-toolbar color="primary">
+          <ion-title>Términos y Condiciones UTVCO</ion-title>
           <ion-buttons slot="end">
             <ion-button (click)="cerrarModal()">
-              <ion-icon name="close-circle"></ion-icon>
+              <ion-icon name="close-circle" slot="icon-only"></ion-icon>
             </ion-button>
           </ion-buttons>
         </ion-toolbar>
       </ion-header>
       <ion-content class="ion-padding">
-        <h2>1. Aceptación de los Términos</h2>
-        <p>Al registrarte en nuestra plataforma, aceptas cumplir con estos términos y condiciones...</p>
+        <h2>1. Uso Institucional</h2>
+        <p>Esta plataforma está destinada exclusivamente para uso de la comunidad UTVCO. Al registrarte, confirmas que eres estudiante, docente o personal administrativo de la institución.</p>
         
-        <h2>2. Uso del Servicio</h2>
-        <p>El servicio está destinado para uso personal y no comercial...</p>
+        <h2>2. Datos Personales</h2>
+        <p>El correo institucional (utvco.edu.mx) y matrícula proporcionados deben ser verídicos y corresponder al usuario registrado. Cualquier falsificación será sancionada según el reglamento escolar.</p>
         
-        <h2>3. Privacidad de Datos</h2>
-        <p>Respetamos tu privacidad y protegemos tus datos personales...</p>
+        <h2>3. Responsabilidades</h2>
+        <p>El usuario es responsable de mantener la confidencialidad de su contraseña y de toda actividad que ocurra bajo su cuenta.</p>
+        
+        <h2>4. Uso Adecuado</h2>
+        <p>La plataforma debe usarse únicamente para fines académicos y actividades autorizadas por la institución.</p>
         
         <div class="modal-buttons">
-          <ion-button expand="block" color="primary" (click)="aceptarTerminos()">
-            Aceptar
-          </ion-button>
-          <ion-button expand="block" color="danger" (click)="rechazarTerminos()">
-            Rechazar
+          <ion-button expand="block" color="primary" (click)="aceptarTerminos(); cerrarModal()">
+            Aceptar Términos
           </ion-button>
         </div>
       </ion-content>

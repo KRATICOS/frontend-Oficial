@@ -57,8 +57,6 @@ addIcons({
     CommonModule,
     FormsModule,
     IonItem,
-    IonText,
-    IonLabel,
     IonImg,
     IonCardTitle,
     IonCol,

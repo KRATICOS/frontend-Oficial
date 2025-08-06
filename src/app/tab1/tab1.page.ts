@@ -26,7 +26,7 @@ import { ActivatedRoute } from '@angular/router';
   styleUrls: ['tab1.page.scss'],
   standalone: true,
   imports: [
-    IonButton, IonInput, IonLabel, IonItem, IonContent,
+    IonButton, IonContent,
     ZXingScannerModule, IonHeader, IonToolbar, IonTitle,
     FormsModule, CommonModule, IonCard, IonCardHeader,
     IonCardTitle, IonCardContent, IonIcon
@@ -94,10 +94,7 @@ export class Tab1Page implements OnInit {
     this.mostrarInput = false;
   }
 
-  modoManual() {
-    this.mostrarInput = true;
-    this.mostrarScanner = false;
-  }
+ 
 
   cerrarScanner() {
     this.mostrarScanner = false;
@@ -284,77 +281,6 @@ export class Tab1Page implements OnInit {
     }
   }
 
-  buscarPorNumero() {
-    if (this.isProcessing) return;
-    this.isProcessing = true;
-    
-    const input = this.Id.trim();
-    if (!input) {
-      this.isProcessing = false;
-      return;
-    }
-
-    const esObjectId = /^[a-f\d]{24}$/i.test(input);
-
-    if (esObjectId) {
-      this.inventarioServices.EquiposId(input).subscribe({
-        next: (equipo) => {
-          if (equipo) {
-            this.router.navigate(['/reserva'], { queryParams: { id: equipo._id } });
-          } else {
-            this.mostrarError('Equipo no encontrado');
-          }
-          this.isProcessing = false;
-        },
-        error: () => {
-          this.mostrarError('Error buscando equipo por ID');
-          this.isProcessing = false;
-        }
-      });
-    } else {
-      this.inventarioServices.buscarPorNumeroSerie(input).subscribe({
-        next: (equipo) => {
-          if (equipo && equipo._id) {
-            this.router.navigate(['/reserva'], { queryParams: { id: equipo._id } });
-          } else {
-            this.mostrarError('Equipo no encontrado por número de serie');
-          }
-          this.isProcessing = false;
-        },
-        error: () => {
-          this.mostrarError('Error buscando por número de serie');
-          this.isProcessing = false;
-        }
-      });
-    }
-  }
-
-  async buscarPorNumeroSerie() {
-    if (this.isProcessing) return;
-    this.isProcessing = true;
-    
-    const serie = this.searchTerm.trim();
-    if (!serie) {
-      this.isProcessing = false;
-      return;
-    }
-
-    try {
-      const equipo = await lastValueFrom(
-        this.inventarioServices.buscarPorNumeroSerie(serie)
-      );
-
-      if (equipo && equipo._id) {
-        await this.procesarEquipoEncontrado(equipo);
-      } else {
-        this.mostrarError('Equipo no encontrado');
-      }
-    } catch (error) {
-      this.mostrarError('Error buscando equipo');
-    } finally {
-      this.isProcessing = false;
-    }
-  }
 
   async procesarEquipoEncontrado(equipo: any) {
     if (!equipo || !this.usuario?._id) {
@@ -378,12 +304,7 @@ export class Tab1Page implements OnInit {
     }
   }
 
-  toggleBusqueda() {
-    this.mostrarBusqueda = !this.mostrarBusqueda;
-    if (this.mostrarBusqueda) {
-      setTimeout(() => this.searchbar.setFocus(), 100);
-    }
-  }
+
 
   private async mostrarExito(mensaje: string) {
     const toast = await this.toastController.create({

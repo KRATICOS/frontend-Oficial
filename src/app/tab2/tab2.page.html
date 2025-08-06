@@ -100,17 +100,7 @@
               <strong>Numero de serie:</strong> {{ equipo.nseries }}
             </p>
 
-            <div *ngIf="equipo.codigoQR" class="mt-3 ion-text-center">
-              <ion-text color="medium">
-                <strong>Código QR</strong>
-              </ion-text>
-              <ion-img
-                [src]="equipo.codigoQR"
-                alt="QR del equipo"
-                class="qr-image" 
-                style="width: 100px; height: 100px; margin: 0 auto;"
-              ></ion-img>
-            </div>
+
 
             <ion-button
               expand="block"

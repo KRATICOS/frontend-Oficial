@@ -26,17 +26,6 @@
   position: relative;
 }
 
-.edit-avatar {
-  position: absolute;
-  bottom: 0;
-  right: 0;
-  background: var(--ion-color-primary);
-  color: white;
-  border-radius: 50%;
-  padding: 5px;
-  font-size: 16px;
-}
-
 .user-info {
   text-align: center;
   margin-bottom: 20px;
@@ -57,40 +46,42 @@
   margin: 8px 0;
 }
 
-.details-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 15px;
-  margin: 20px 0;
-}
-
-.detail-item {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  color: #34495e;
-  font-size: 14px;
-}
-
-.detail-item ion-icon {
-  color: var(--ion-color-primary);
-}
-
 .action-buttons {
   display: flex;
   flex-direction: column;
   gap: 12px;
 }
 
+.upload-section {
+  background: white;
+  border-radius: 16px;
+  padding: 20px;
+  margin-bottom: 20px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+  text-align: center;
+}
+
+.file-info {
+  margin-top: 16px;
+  padding: 16px;
+  background: var(--ion-color-light);
+  border-radius: 8px;
+  
+  p {
+    margin: 0 0 12px 0;
+    color: var(--ion-color-dark);
+  }
+}
+
 .welcome-card {
   border-radius: 12px;
   margin: 0;
-}
-
-.welcome-card ion-card-header {
-  padding-bottom: 0;
-}
-
-.welcome-card ion-card-title {
-  font-size: 1.4rem;
+  
+  ion-card-header {
+    padding-bottom: 0;
+  }
+  
+  ion-card-title {
+    font-size: 1.4rem;
+  }
 }

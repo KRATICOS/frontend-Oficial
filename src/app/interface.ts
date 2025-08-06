@@ -16,6 +16,7 @@ export interface Inventario {
   nseries: string;
   codigoQR?: string;
   ultimoPrestamoQR?: number | null;
+   reservaBloqueada?: boolean;
 }
 
 
@@ -27,7 +28,7 @@ export interface Usuario {
     rol: 'superadmin' | 'admin' | 'user';
     matricula?: string;
     grupo?: string;
-    imagen?:string[]
+    imagen:string[]
 }
 
 export interface Registro {

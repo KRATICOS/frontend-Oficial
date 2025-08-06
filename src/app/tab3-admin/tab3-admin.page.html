@@ -113,6 +113,16 @@
               </ion-button>
             </div>
 
+            <ion-button 
+  fill="clear" 
+  [color]="equipo.reservaBloqueada ? 'danger' : 'success'"
+  (click)="toggleBloqueoReserva(equipo)">
+  <ion-icon 
+    [name]="equipo.reservaBloqueada ? 'lock-closed' : 'lock-open'" 
+    slot="icon-only">
+  </ion-icon>
+</ion-button>
+
             <ion-button fill="clear" color="medium" (click)="editarMaterial(equipo._id)">
               <ion-icon slot="start" name="create-outline"></ion-icon>
               Editar

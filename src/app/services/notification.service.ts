@@ -13,7 +13,7 @@ export interface NotificacionReserva {
   horaFin?: string;
   horaFinNumero?: number;
   observaciones?: string;
-  estado: 'Pendiente' | 'Aprobado' | 'Rechazado' | 'Devolución Confirmada' | 'Devolución Rechazada';
+  estado: 'Pendiente' | 'Aprobado' | 'Rechazado' 
   fecha: Date | string;
   leida: boolean;
   notificacionesProgramadas?: number[];
@@ -108,36 +108,39 @@ export class NotificationService {
 
 
   private iniciarMonitorDevoluciones() {
-    if (this.intervalId) {
-      clearInterval(this.intervalId);
-    }
-    this.intervalId = setInterval(() => {
-      this.verificarDevolucionesPendientes();
-    }, 300000); // 5 minutos
+  if (this.intervalId) {
+    clearInterval(this.intervalId);
   }
+  this.intervalId = setInterval(() => {
+    this.verificarDevolucionesPendientes();
+  }, 60000); // 1 minuto
+}
 
-  private async verificarDevolucionesPendientes() {
-    const ahora = new Date();
-    const { hours: horaActual, minutes: minutoActual } = {
-      hours: ahora.getHours(),
-      minutes: ahora.getMinutes()
-    };
+private async verificarDevolucionesPendientes() {
+  const ahora = new Date();
+  const { hours: horaActual, minutes: minutoActual } = {
+    hours: ahora.getHours(),
+    minutes: ahora.getMinutes()
+  };
 
-    for (const notif of this.notificacionesActuales) {
-      if (notif.estado !== 'Aprobado') continue;
+  for (const notif of this.notificacionesActuales) {
+    if (notif.estado !== 'Aprobado') continue;
 
-      const horaFin = this.obtenerHoraFin(notif);
-      if (horaFin === null) continue;
+    const horaFin = this.obtenerHoraFin(notif);
+    if (horaFin === null) continue;
 
-      const minutosRestantes = (horaFin - horaActual) * 60 - minutoActual;
+    const minutosRestantes = (horaFin - horaActual) * 60 - minutoActual;
 
-      if (minutosRestantes > 0 && minutosRestantes <= 30) {
-        await this.notificarTiempoRestante(notif, minutosRestantes);
-      } else if (minutosRestantes <= 0) {
-        await this.notificarDevolucionVencida(notif, Math.abs(minutosRestantes));
-      }
+    // Notificación cuando quedan 3 minutos
+    if (minutosRestantes > 0 && minutosRestantes <= 3) {
+      await this.notificarTiempoRestante(notif, minutosRestantes);
+    } 
+    // Notificación cuando el tiempo ha concluido
+    else if (minutosRestantes <= 0) {
+      await this.notificarDevolucionVencida(notif, Math.abs(minutosRestantes));
     }
   }
+}
 
   private obtenerHoraFin(notif: NotificacionReserva): number | null {
     if (notif.tipo === 'qr') {
@@ -344,75 +347,6 @@ private guardarNotificaciones(notificaciones: NotificacionReserva[]) {
     }
   }
 
-  async solicitarDevolucion(equipoId: string, usuarioId: string, prestamoId: string): Promise<NotificacionReserva> {
-    try {
-      const solicitudExistente = this.notificacionesActuales.find(
-        n => n.equipoId === equipoId && 
-             n.usuarioId === usuarioId && 
-             n.tipo === 'devolucion' && 
-             n.estado === 'Pendiente'
-      );
-
-      if (solicitudExistente) {
-        throw new Error('Ya existe una solicitud de devolución pendiente');
-      }
-
-      const notificacion = await this.agregarNotificacion({
-        equipoId: equipoId,
-        equipoNombre: 'Equipo', // Deberías obtener el nombre real del equipo
-        usuarioId: usuarioId,
-        usuarioNombre: 'Usuario', // Deberías obtener el nombre real del usuario
-        horaInicio: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        estado: 'Pendiente',
-        tipo: 'devolucion',
-        observaciones: 'Solicitud de devolución del equipo',
-        prestamoId: prestamoId
-      });
-
-      await this.notificarAdministradores(
-        'Solicitud de Devolución',
-        `El usuario ha solicitado devolver el equipo`,
-        notificacion._id
-      );
-
-      return notificacion;
-    } catch (error) {
-      console.error('Error en solicitarDevolucion:', error);
-      throw error;
-    }
-  }
-
-  async confirmarDevolucion(notificacionId: string, aceptada: boolean): Promise<void> {
-    const notificacion = this.notificacionesActuales.find(n => n._id === notificacionId);
-    if (!notificacion) {
-      throw new Error('Notificación no encontrada');
-    }
-
-    try {
-      const estado = aceptada ? 'Devolución Confirmada' : 'Devolución Rechazada';
-      await this.actualizarEstado(notificacionId, estado);
-
-      const titulo = aceptada ? 'Devolución Aceptada' : 'Devolución Rechazada';
-      const mensaje = aceptada 
-        ? `El administrador ha aceptado la devolución del equipo`
-        : `El administrador ha rechazado la devolución del equipo. Por favor, contacta al administrador.`;
-
-      await this.enviarNotificacionUsuario(
-        notificacion.usuarioId,
-        titulo,
-        mensaje,
-        notificacion._id
-      );
-
-      if (aceptada) {
-        await this.notificarDevolucionExitosa(notificacion);
-      }
-    } catch (error) {
-      console.error('Error en confirmarDevolucion:', error);
-      throw error;
-    }
-  }
-
   async notificarAdministradores(titulo: string, mensaje: string, notificacionId: string): Promise<void> {
     try {
       await LocalNotifications.schedule({
@@ -450,7 +384,7 @@ private guardarNotificaciones(notificaciones: NotificacionReserva[]) {
     }
   }
 
-  async actualizarEstado(id: string, nuevoEstado: 'Aprobado' | 'Rechazado' | 'Devolución Confirmada' | 'Devolución Rechazada') {
+  async actualizarEstado(id: string, nuevoEstado: 'Aprobado' | 'Rechazado' ) {
     try {
       const actual = this.notificacionesSubject.value.map(n => {
         if (n._id === id) {
@@ -469,21 +403,23 @@ private guardarNotificaciones(notificaciones: NotificacionReserva[]) {
     }
   }
 
-  async marcarReservaComoActivada(notificacionId: string, prestamoId: string): Promise<void> {
-    try {
-      const actual = this.notificacionesSubject.value.map(n => {
-        if (n._id === notificacionId) {
-          return { ...n, activada: true, prestamoId };
-        }
-        return n;
-      });
-      this.notificacionesSubject.next(actual);
-      this.guardarNotificaciones(actual);
-    } catch (error) {
-      console.error('Error marcando reserva como activada:', error);
-      throw error;
-    }
+async marcarReservaComoActivada(notificacionId: string, prestamoId: string): Promise<void> {
+  try {
+    const actual = this.notificacionesSubject.value.map(n => {
+      if (n._id === notificacionId) {
+        console.log(`Marcando reserva ${notificacionId} como activada`);
+        return { ...n, activada: true, prestamoId };
+      }
+      return n;
+    });
+    
+    this.notificacionesSubject.next(actual);
+    this.guardarNotificaciones(actual);
+  } catch (error) {
+    console.error('Error marcando reserva como activada:', error);
+    throw error;
   }
+}
 
   async actualizarEstadoEquipoReserva(notificacionId: string, estado: string): Promise<void> {
     try {
