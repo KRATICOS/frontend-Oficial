@@ -1,0 +1,225 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-title>Registrar y Gestionar Usuarios</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="ion-padding">
+  <!-- Card de registro -->
+  <ion-card class="register-card">
+    <form [formGroup]="userForm" (ngSubmit)="onSubmit()">
+      <!-- Imagen de perfil -->
+      <ion-card-header class="avatar-container">
+        <div class="avatar-wrapper">
+          <ion-avatar class="profile-avatar">
+            <img [src]="imagePreview || 'assets/utvcoIMAGEN.jpg'" alt="Foto de perfil" />
+          </ion-avatar>
+
+          <ion-button fill="clear" class="upload-btn" (click)="fileInput.click()" size="small">
+            <ion-icon name="image-outline"></ion-icon>
+          </ion-button>
+
+          <input type="file" hidden #fileInput (change)="onFileSelected($event)" accept="image/*" />
+        </div>
+      </ion-card-header>
+
+      <!-- Nombre -->
+      <ion-item>
+        <ion-label position="floating">Nombre</ion-label>
+        <ion-input formControlName="name"></ion-input>
+      </ion-item>
+      <ion-text *ngIf="userForm.get('name')?.errors?.['required'] && (userForm.get('name')?.touched || userForm.get('name')?.dirty)" color="danger" class="error-message">
+        El nombre es requerido
+      </ion-text>
+      <ion-text *ngIf="userForm.get('name')?.errors?.['pattern']" color="danger" class="error-message">
+        Solo se permiten letras y espacios
+      </ion-text>
+
+      <!-- Correo -->
+      <ion-item>
+        <ion-label position="floating">Correo electrónico</ion-label>
+        <ion-input type="email" formControlName="email"></ion-input>
+      </ion-item>
+      <ion-text *ngIf="userForm.get('email')?.errors?.['required'] && (userForm.get('email')?.touched || userForm.get('email')?.dirty)" color="danger" class="error-message">
+        El correo es requerido
+      </ion-text>
+      <ion-text *ngIf="userForm.get('email')?.errors?.['email']" color="danger" class="error-message">
+        Formato de correo inválido
+      </ion-text>
+      <ion-text *ngIf="userForm.get('email')?.errors?.['dominioInvalido']" color="danger" class="error-message">
+        Debe usar un correo institucional (@utvco.edu.mx)
+      </ion-text>
+      <ion-text *ngIf="userForm.get('email')?.errors?.['matriculaNoCoincide']" color="danger" class="error-message">
+        El correo debe comenzar con la matrícula
+      </ion-text>
+
+      <!-- Contraseña -->
+      <ion-item>
+        <ion-label position="floating">Contraseña</ion-label>
+        <ion-input [type]="passwordFieldType" formControlName="password"></ion-input>
+        <ion-button fill="clear" slot="end" (click)="togglePasswordVisibility()">
+          <ion-icon [name]="showPassword ? 'eye-outline' : 'eye-off-outline'"></ion-icon>
+        </ion-button>
+      </ion-item>
+      <ion-text *ngIf="userForm.get('password')?.errors?.['required'] && (userForm.get('password')?.touched || userForm.get('password')?.dirty)" color="danger" class="error-message">
+        La contraseña es requerida
+      </ion-text>
+      <ion-text *ngIf="userForm.get('password')?.errors?.['minlength']" color="danger" class="error-message">
+        Mínimo 8 caracteres
+      </ion-text>
+      <ion-text *ngIf="userForm.get('password')?.errors?.['passwordWeak']" color="danger" class="error-message">
+        La contraseña debe contener mayúsculas, minúsculas, números y caracteres especiales
+      </ion-text>
+
+      <!-- Teléfono -->
+      <ion-item>
+        <ion-label position="floating">Teléfono</ion-label>
+        <ion-input type="tel" formControlName="tel"></ion-input>
+      </ion-item>
+      <ion-text *ngIf="userForm.get('tel')?.errors?.['required'] && (userForm.get('tel')?.touched || userForm.get('tel')?.dirty)" color="danger" class="error-message">
+        El teléfono es requerido
+      </ion-text>
+      <ion-text *ngIf="userForm.get('tel')?.errors?.['pattern']" color="danger" class="error-message">
+        Debe tener 10 dígitos numéricos
+      </ion-text>
+
+      <!-- Rol -->
+      <ion-item>
+        <ion-label>Rol</ion-label>
+        <ion-select formControlName="rol">
+          <ion-select-option value="user">Usuario</ion-select-option>
+          <ion-select-option value="admin">Administrador</ion-select-option>
+          <ion-select-option value="superadmin">Superadministrador</ion-select-option>
+        </ion-select>
+      </ion-item>
+
+      <!-- Matricula y Grupo (solo para usuario) -->
+      <ng-container *ngIf="userForm.get('rol')?.value === 'user'">
+        <ion-item>
+          <ion-label position="floating">Matrícula</ion-label>
+          <ion-input formControlName="matricula"></ion-input>
+        </ion-item>
+        <ion-text *ngIf="userForm.get('matricula')?.errors?.['required'] && (userForm.get('matricula')?.touched || userForm.get('matricula')?.dirty)" color="danger" class="error-message">
+          La matrícula es requerida
+        </ion-text>
+        <ion-text *ngIf="userForm.get('matricula')?.errors?.['pattern']" color="danger" class="error-message">
+          Solo caracteres alfanuméricos
+        </ion-text>
+
+        <ion-item>
+          <ion-label position="floating">Grupo</ion-label>
+          <ion-input formControlName="grupo"></ion-input>
+        </ion-item>
+        <ion-text *ngIf="userForm.get('grupo')?.errors?.['required'] && (userForm.get('grupo')?.touched || userForm.get('grupo')?.dirty)" color="danger" class="error-message">
+          El grupo es requerido
+        </ion-text>
+      </ng-container>
+
+      <!-- Botones -->
+      <div class="btn-group ion-padding-top">
+        <ion-button expand="block" color="primary" type="submit" [disabled]="userForm.invalid">
+          Registrar
+        </ion-button>
+        <ion-button expand="block" fill="outline" color="medium" (click)="cancel()" class="ion-margin-top">
+          Cancelar
+        </ion-button>
+      </div>
+    </form>
+  </ion-card>
+
+  <!-- Sección de gestión de usuarios -->
+  <ion-card class="users-management">
+    <ion-card-header>
+      <ion-card-title>Gestión de Usuarios</ion-card-title>
+    </ion-card-header>
+
+    <ion-card-content>
+      <!-- Filtros y búsqueda -->
+      <div class="filters-section">
+        <ion-searchbar 
+          [(ngModel)]="searchTerm" 
+          (ionChange)="applyFilters()" 
+          placeholder="Buscar por nombre, email o matrícula"
+          debounce="300">
+        </ion-searchbar>
+
+        <ion-item>
+          <ion-label>Filtrar por grupo:</ion-label>
+          <ion-select 
+            [(ngModel)]="selectedGroup" 
+            (ionChange)="applyFilters()" 
+            interface="popover">
+            <ion-select-option value="">Todos los grupos</ion-select-option>
+            <ion-select-option *ngFor="let group of uniqueGroups" [value]="group">
+              {{ group }}
+            </ion-select-option>
+          </ion-select>
+        </ion-item>
+      </div>
+
+      <!-- Lista de usuarios -->
+      <div class="users-list-container">
+        <ion-list lines="full">
+          <ion-item-sliding *ngFor="let user of filteredUsers">
+            <ion-item>
+              <ion-checkbox 
+                slot="start" 
+                [(ngModel)]="selectedUsers[user._id]"
+                (ionChange)="updateSelectedCount()">
+              </ion-checkbox>
+            
+
+              <ion-label>
+                <h2>{{ user.name }}</h2>
+                <p>{{ user.email }}</p>
+                <p *ngIf="user.matricula">Matrícula: {{ user.matricula }}</p>
+                <p *ngIf="user.grupo">Grupo: {{ user.grupo }}</p>
+                <p>Rol: {{ user.rol }}</p>
+              </ion-label>
+            </ion-item>
+
+            <ion-item-options side="end">
+              <ion-item-option color="danger" (click)="confirmDeleteUser(user._id)">
+                <ion-icon name="trash" slot="icon-only"></ion-icon>
+              </ion-item-option>
+            </ion-item-options>
+          </ion-item-sliding>
+        </ion-list>
+
+        <!-- Paginación -->
+        <ion-footer *ngIf="totalUsers > itemsPerPage">
+          <ion-toolbar>
+            <ion-buttons slot="start">
+              <ion-button (click)="previousPage()" [disabled]="currentPage === 1">
+                Anterior
+              </ion-button>
+            </ion-buttons>
+            
+            <ion-title>Página {{ currentPage }} de {{ totalPages }}</ion-title>
+            
+            <ion-buttons slot="end">
+              <ion-button (click)="nextPage()" [disabled]="currentPage === totalPages">
+                Siguiente
+              </ion-button>
+            </ion-buttons>
+          </ion-toolbar>
+        </ion-footer>
+      </div>
+
+      <!-- Acciones masivas -->
+      <div class="bulk-actions" *ngIf="selectedCount > 0">
+        <ion-chip color="primary">
+          <ion-label>{{ selectedCount }} seleccionados</ion-label>
+        </ion-chip>
+        
+        <ion-button 
+          color="danger" 
+          size="small" 
+          fill="outline" 
+          (click)="confirmBulkDelete()">
+          Eliminar seleccionados
+        </ion-button>
+      </div>
+    </ion-card-content>
+  </ion-card>
+</ion-content>

@@ -1,0 +1,63 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-title class="ion-padding" class="ion-text-center">
+      Notificaciones
+      <ion-badge color="danger" *ngIf="unreadCount > 0">{{unreadCount}}</ion-badge>
+    </ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content>
+  <ion-toast 
+    [isOpen]="showToast" 
+    [message]="toastMessage" 
+    [color]="toastColor"
+    [duration]="3000"
+    (didDismiss)="onToastDismiss()">
+  </ion-toast>
+
+  <ion-list *ngIf="notificaciones.length > 0">
+    <ion-item 
+      *ngFor="let notif of notificaciones" 
+      [color]="notif.leida ? 'light' : 'primary'"
+      (click)="markAsRead(notif)">
+      <ion-avatar slot="start">
+        <ion-icon 
+          [name]="getIconForEstado(notif.estado)" 
+          [color]="getColorForEstado(notif.estado)">
+        </ion-icon>
+      </ion-avatar>
+      
+      <ion-label>
+        <h2>Reserva {{notif.estado}}</h2>
+        <p>{{notif.equipoNombre}}</p>
+        <p>{{notif.horaInicio}} - {{notif.horaFin}}</p>
+        <p *ngIf="notif.observaciones">{{notif.observaciones}}</p>
+        <p>{{notif.fecha | date:'medium'}}</p>
+      </ion-label>
+      
+      <ion-badge 
+        slot="end" 
+        [color]="getColorForEstado(notif.estado)">
+        {{notif.estado}}
+      </ion-badge>
+
+
+      <ion-button 
+        fill="clear" 
+        color="danger" 
+        slot="end" 
+        class="cancel-button"
+        (click)="deleteReservacion(notif, $event)">
+        Cancelar<br>reserva
+      </ion-button>
+    </ion-item>
+  </ion-list>
+
+  <div class="empty-state" *ngIf="notificaciones.length === 0">
+    <ion-icon name="notifications-off" size="large"></ion-icon>
+    <p>No hay notificaciones</p>
+  </div>
+
+
+</ion-content>

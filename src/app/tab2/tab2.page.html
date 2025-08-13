@@ -1,0 +1,119 @@
+<ion-content [fullscreen]="true">
+  <!-- Barra de búsqueda -->
+  <ion-searchbar 
+    [(ngModel)]="searchTerm"
+    (ionInput)="buscarEquipos($event)"
+    placeholder="Buscar equipos..."
+    animated
+    debounce="300"
+    class="custom-searchbar"
+  ></ion-searchbar>
+
+  <!-- Filtros -->
+  <ion-item lines="none" class="filters-container">
+    <!-- Filtro por categoría -->
+    <ion-select
+      [(ngModel)]="categoriaSeleccionada"
+      (ionChange)="filtrarPorCategoria()"
+      interface="popover"
+      placeholder="Categoría"
+      class="custom-select"
+    >
+      <ion-select-option value="">Categoria</ion-select-option>
+      <ion-select-option *ngFor="let categoria of categorias" [value]="categoria">
+        {{ categoria }}
+      </ion-select-option>
+    </ion-select>
+
+    <!-- Filtro por estado -->
+    <ion-select
+      [(ngModel)]="estadoSeleccionado"
+      (ionChange)="filtrarPorEstado()"
+      interface="popover"
+      placeholder="Estado"
+      class="custom-select"
+    >
+      <ion-select-option value="">Estado</ion-select-option>
+      <ion-select-option value="Disponible">Disponible</ion-select-option>
+      <ion-select-option value="Ocupado">Ocupado</ion-select-option>
+      <ion-select-option value="En Mantenimiento">En Mantenimiento</ion-select-option>
+    </ion-select>
+
+    <!-- Botón para limpiar filtros -->
+    <ion-button 
+      fill="clear" 
+      (click)="limpiarFiltros()"
+      class="clear-filters"
+    >
+      Limpiar
+    </ion-button>
+  </ion-item>
+
+  <!-- Lista de equipos -->
+  <ion-grid fixed>
+    <ion-row class="ion-justify-content-center ion-padding-bottom">
+      <ion-col
+        *ngFor="let equipo of equipos"
+        size="12"
+        size-md="6"
+        size-lg="4"
+        class="animate-fade"
+      >
+        <ion-card class="equipment-card">
+          <div class="image-container">
+            <ion-img
+              *ngIf="equipo.imagenes?.length"
+              [src]="equipo.imagenes[0]?.url"
+              alt="Imagen del equipo"
+              class="equipment-image"
+            ></ion-img>
+
+            <ion-badge
+              [color]="
+                equipo.estado === 'Disponible'
+                  ? 'success'
+                  : equipo.estado === 'Ocupado'
+                  ? 'warning'
+                  : 'danger'
+              "
+              class="state-badge"
+            >
+              {{ equipo.estado }}
+            </ion-badge>
+          </div>
+
+          <ion-card-header>
+            <ion-card-title>{{ equipo.name }}</ion-card-title>
+            <ion-card-subtitle>Categoría: {{ equipo.categoria }}</ion-card-subtitle>
+          </ion-card-header>
+
+          <ion-card-content>
+            <p class="description">
+              <strong>Descripción:</strong> {{ equipo.description }}
+            </p>
+
+            <p class="model">
+              <strong>Modelo:</strong> {{ equipo.model }}
+            </p>
+
+            <p class="serie">
+              <strong>Numero de serie:</strong> {{ equipo.nseries }}
+            </p>
+
+
+
+            <ion-button
+              expand="block"
+              fill="solid"
+              shape="round"
+              (click)="verDetalles(equipo._id)"
+              class="details-button"
+            >
+              Reservar
+            </ion-button>
+          </ion-card-content>
+        </ion-card>
+      </ion-col>
+    </ion-row>
+  </ion-grid>
+</ion-content>

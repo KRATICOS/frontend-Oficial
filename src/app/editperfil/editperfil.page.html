@@ -1,0 +1,94 @@
+<ion-header>
+  <ion-toolbar color="primary">
+    <ion-title>Editar Perfil</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="ion-padding">
+  <ion-card>
+<ion-card-header class="avatar-container">
+  <div class="avatar-wrapper">
+      <ion-avatar class="profile-avatar">
+        <img [src]="usuario.imagen" (error)="onImageError($event)" alt="Foto de perfil" />
+      </ion-avatar>
+
+    <ion-buttons class="avatar-buttons">
+      <ion-button fill="clear" (click)="fileInput.click()" size="small">
+        <ion-icon name="image-outline"></ion-icon>
+      </ion-button>
+
+      <ion-button fill="clear" color="danger" size="small" *ngIf="previewImage" (click)="deleteCurrentImage()">
+        <ion-icon name="trash"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+
+    <input type="file" hidden #fileInput (change)="onFileSelected($event)" accept="image/*" />
+  </div>
+</ion-card-header>
+
+    <ion-card-content>
+      <form [formGroup]="userForm" (ngSubmit)="onSubmit()">
+        <ion-list>
+          <ion-item>
+            <ion-label position="floating">Nombre</ion-label>
+            <ion-input formControlName="name" type="text"></ion-input>
+          </ion-item>
+
+          <ion-item>
+            <ion-label position="floating">Email</ion-label>
+            <ion-input formControlName="email" type="email"></ion-input>
+          </ion-item>
+
+          <ion-item>
+            <ion-label position="floating">Contraseña (dejar en blanco para no cambiar)</ion-label>
+            <ion-input formControlName="password" type="password"></ion-input>
+          </ion-item>
+
+          <div *ngIf="!isAdmin">
+            <ion-item>
+              <ion-label position="floating">Teléfono</ion-label>
+              <ion-input formControlName="tel" type="tel"></ion-input>
+            </ion-item>
+
+            <ion-item>
+              <ion-label position="floating">Matrícula</ion-label>
+              <ion-input formControlName="matricula" type="text"></ion-input>
+            </ion-item>
+
+            <ion-item>
+              <ion-label position="floating">Grupo</ion-label>
+              <ion-input formControlName="grupo" type="text"></ion-input>
+            </ion-item>
+          </div>
+
+          <ion-item>
+            <ion-label position="floating">Rol</ion-label>
+            <ion-input formControlName="rol" [readonly]="true"></ion-input>
+          </ion-item>
+        </ion-list>
+
+        <div class="ion-margin-top ion-text-center">
+          <ion-button type="submit" expand="block" color="primary" [disabled]="userForm.invalid">
+            <ion-icon slot="start" name="save"></ion-icon>
+            Guardar Cambios
+          </ion-button>
+
+          <ion-button expand="block" fill="outline" color="medium" (click)="cancel()" class="ion-margin-top">
+            <ion-icon slot="start" name="close"></ion-icon>
+            Cancelar
+          </ion-button>
+
+          <ion-button expand="block" fill="clear" color="danger" (click)="clearForm()" class="ion-margin-top">
+            <ion-icon slot="start" name="trash"></ion-icon>
+            Limpiar Campos
+          </ion-button>
+        </div>
+      </form>
+    </ion-card-content>
+  </ion-card>
+
+
+
+
+  
+</ion-content>

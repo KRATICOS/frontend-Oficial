@@ -1,0 +1,88 @@
+<ion-header>
+  <ion-toolbar color="primary">
+    <ion-title>Mi Perfil</ion-title>
+    <ion-buttons slot="end">
+      <ion-button (click)="abrirModalNotificaciones()">
+        <ion-icon name="notifications-outline"></ion-icon>
+        <ion-badge *ngIf="notificaciones.length > 0"
+                   color="danger"
+                   style="position: absolute; top: 5px; right: 5px;">
+          {{ notificaciones.length }}
+        </ion-badge>
+      </ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="ion-padding profile-content">
+  <div class="profile-card">
+    <div class="avatar-container">
+      <ion-avatar class="profile-avatar">
+        <img [src]="usuario.imagen" (error)="onImageError($event)" alt="Foto de perfil" />
+      </ion-avatar>
+    </div>
+
+    <div class="user-info">
+      <h2 class="user-name">{{ usuario.name || 'Nombre no disponible' }}</h2>
+      <p class="user-detail">
+        <ion-icon name="mail-outline"></ion-icon>
+        {{ usuario.email || 'Email no disponible' }}
+      </p>
+    </div>
+
+    <div class="action-buttons">
+      <ion-button expand="block" shape="round" color="primary" (click)="addAdm()">
+        <ion-icon slot="start" name="create-outline"></ion-icon>
+        Add Admin
+      </ion-button>
+      
+      <!-- Botón para subir archivos Excel -->
+      <ion-button expand="block" shape="round" color="secondary" (click)="toggleUploadOption()">
+        <ion-icon slot="start" name="document-attach-outline"></ion-icon>
+        {{ showUploadOption ? 'Cancelar' : 'Subir Excel' }}
+      </ion-button>
+      
+      <ion-button expand="block" shape="round" color="primary" (click)="actualizarPerfil()">
+        <ion-icon slot="start" name="create-outline"></ion-icon>
+        Editar Perfil
+      </ion-button>
+      
+      <ion-button expand="block" shape="round" fill="outline" color="medium" (click)="logout()">
+        <ion-icon slot="start" name="log-out-outline"></ion-icon>
+        Cerrar Sesión
+      </ion-button>
+    </div>
+  </div>
+
+  <!-- Sección para subir archivos Excel -->
+  <div *ngIf="showUploadOption" class="upload-section">
+    <input #fileInput type="file" id="excelUpload" (change)="onFileSelected($event)" accept=".xlsx,.xls,.csv" hidden>
+    <label for="excelUpload">
+      <ion-button expand="block" shape="round" color="tertiary" (click)="fileInput.click()">
+        <ion-icon slot="start" name="document-attach-outline"></ion-icon>
+        Seleccionar Archivo
+      </ion-button>
+    </label>
+    
+    <div *ngIf="selectedFile" class="file-info">
+      <p>Archivo seleccionado: {{ selectedFile.name }}</p>
+      <ion-button expand="block" shape="round" color="success" (click)="processExcelFile()">
+        Procesar Archivo
+      </ion-button>
+    </div>
+  </div>
+
+  <ion-card class="welcome-card">
+    <ion-card-header>
+      <ion-card-subtitle>Bienvenido de vuelta</ion-card-subtitle>
+      <ion-card-title>Hola, {{ usuario.name || 'Usuario' }}</ion-card-title>
+    </ion-card-header>
+    <ion-card-content>
+      <p>Aquí puedes gestionar tu información personal y acceder a las configuraciones de tu cuenta.</p>
+      <ion-button fill="clear" color="primary" size="small">
+        Más información
+        <ion-icon slot="end" name="arrow-forward-outline"></ion-icon>
+      </ion-button>
+    </ion-card-content>
+  </ion-card>
+</ion-content>

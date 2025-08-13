@@ -1,0 +1,110 @@
+.register-card {
+  padding: 16px;
+  border-radius: 16px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+}
+
+.avatar-container {
+  display: flex;
+  justify-content: center;
+  margin-top: 10px;
+}
+
+.avatar-wrapper {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.profile-avatar {
+  width: 110px;
+  height: 110px;
+  border: 3px solid white;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+}
+
+.upload-btn {
+  margin-top: 12px;
+  z-index: 10;
+  background: white;
+  border-radius: 50%;
+  --padding-start: 6px;
+  --padding-end: 6px;
+  --padding-top: 6px;
+  --padding-bottom: 6px;
+  --box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+}
+
+.btn-group {
+  margin-top: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+ion-button {
+  margin-top: 8px;
+  --border-radius: 8px;
+  font-weight: 600;
+  text-transform: none;
+
+  &[color="primary"] {
+    --box-shadow: 0 4px 8px rgba(var(--ion-color-primary-rgb), 0.3);
+  }
+
+  ion-icon {
+    font-size: 1.2em;
+  }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  .icon-grid {
+  --ion-grid-padding: 0;
+  --ion-grid-column-padding: 0;
+}
+
+.icon-cell {
+  padding: 0;
+  margin: 0;
+}
+
+.icon-card {
+  margin: 0.5px;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  height: 100%;
+}
+
+.icon-label {
+  font-size: 10px;
+  margin-top: 4px;
+  word-break: break-word;
+}
+
+}
+

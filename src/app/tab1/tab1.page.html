@@ -1,0 +1,38 @@
+<ion-header>
+  <ion-toolbar color="primary">
+    <ion-title class="ion-text-center">Uso de Material</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="ion-padding" [fullscreen]="true" [scrollY]="!mostrarScanner">
+
+  <div class="options-container animate__animated animate__fadeInUp">
+    <ion-card class="option-card" (click)="modoEscaneo()">
+      <div class="card-icon">
+        <ion-icon name="qr-code" color="success"></ion-icon>
+      </div>
+      <ion-card-header>
+        <ion-card-title>Escanear QR</ion-card-title>
+      </ion-card-header>
+      <ion-card-content>
+        Usa la cámara para escanear el código QR del material
+      </ion-card-content>
+      <div class="card-wave"></div>
+    </ion-card>
+
+  </div>
+
+  <div *ngIf="mostrarScanner" class="scanner-container animate__animated animate__zoomIn">
+    <div class="scanner-overlay">
+      <div class="scanner-frame"></div>
+      <p class="scanner-hint">Apunta al código QR dentro del marco</p>
+    </div>
+    <zxing-scanner (scanSuccess)="procesarCodigo($event)" class="scanner"></zxing-scanner>
+    <ion-button expand="block" color="danger" (click)="cerrarScanner()" class="animate__animated animate__fadeIn">
+      <ion-icon name="close-circle" slot="start"></ion-icon>
+      Cerrar Cámara
+    </ion-button>
+  </div>
+
+
+</ion-content>

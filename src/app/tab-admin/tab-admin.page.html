@@ -1,0 +1,110 @@
+<ion-header>
+  <ion-toolbar color="primary">
+    <ion-title>Material en Uso</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="ion-padding">
+  <!-- Loading State -->
+  <div *ngIf="isLoading" class="ion-text-center ion-padding">
+    <ion-spinner name="crescent"></ion-spinner>
+    <p>Cargando materiales en uso...</p>
+  </div>
+
+  <!-- Empty State -->
+  <div *ngIf="!isLoading && registros.length === 0" class="ion-text-center ion-padding">
+    <ion-icon name="checkmark-circle" color="success" size="large"></ion-icon>
+    <h3>No hay materiales en uso</h3>
+    <ion-text color="medium">
+      <p>Todos los materiales están disponibles</p>
+    </ion-text>
+  </div>
+
+  <!-- Lista de registros -->
+  <ion-list *ngIf="!isLoading && registros.length > 0">
+    <ion-list-header>
+      <ion-label>Materiales actualmente en uso</ion-label>
+    </ion-list-header>
+
+    <ion-item 
+      *ngFor="let registro of registros" 
+      button 
+      detail 
+      (click)="verDetalles(registro)">
+      
+      <ion-label>
+        <h2>{{ getCodigo(registro) }}</h2>
+        <p>{{ getNombreUsuario(registro) }} • {{ getGrupoUsuario(registro) }}</p>
+        <p>
+          <ion-text color="medium">
+            {{ formatFecha(registro.fechaPrestamo) }} • {{ registro.horaSolicitud || 'Sin hora' }}
+          </ion-text>
+        </p>
+      </ion-label>
+      
+      <ion-badge 
+        slot="end" 
+        [color]="getEstadoBadgeColor(registro.estado)">
+        {{ registro.estado || 'Ocupado' }}
+      </ion-badge>
+    </ion-item>
+  </ion-list>
+
+  <!-- Modal de detalles -->
+  <ion-modal [isOpen]="selectedRegistro !== null" (didDismiss)="cerrarModal()">
+    <ng-template>
+      <ion-header>
+        <ion-toolbar color="primary">
+          <ion-buttons slot="start">
+            <ion-button (click)="cerrarModal()">Cerrar</ion-button>
+          </ion-buttons>
+          <ion-title>Detalles del Préstamo</ion-title>
+        </ion-toolbar>
+      </ion-header>
+      
+      <ion-content class="ion-padding">
+        <ion-list *ngIf="selectedRegistro">
+          <ion-item>
+            <ion-label>
+              <h2>Material</h2>
+              <p>{{ getCodigo(selectedRegistro) }}</p>
+            </ion-label>
+          </ion-item>
+
+          <ion-item>
+            <ion-label>
+              <h2>Usuario</h2>
+              <p>{{ getNombreUsuario(selectedRegistro) }}</p>
+              <p>{{ getGrupoUsuario(selectedRegistro) }}</p>
+            </ion-label>
+          </ion-item>
+
+          <ion-item>
+            <ion-label>
+              <h2>Fecha y Hora</h2>
+              <p>{{ formatFecha(selectedRegistro.fechaPrestamo) }}</p>
+              <p>{{ selectedRegistro.horaSolicitud || 'Sin hora registrada' }}</p>
+            </ion-label>
+          </ion-item>
+
+          <ion-item>
+            <ion-label>
+              <h2>Estado</h2>
+              <ion-badge [color]="getEstadoBadgeColor(selectedRegistro.estado)">
+                {{ selectedRegistro.estado || 'Ocupado' }}
+              </ion-badge>
+            </ion-label>
+          </ion-item>
+
+          <ion-item *ngIf="selectedInventario">
+            <ion-label>
+              <h2>Detalles del Material</h2>
+              <p>Categoría: {{ selectedInventario.categoria }}</p>
+              <p>Modelo: {{ selectedInventario.model || 'N/A' }}</p>
+            </ion-label>
+          </ion-item>
+        </ion-list>
+      </ion-content>
+    </ng-template>
+  </ion-modal>
+</ion-content>

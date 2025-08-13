@@ -1,0 +1,180 @@
+<ion-header>
+  <ion-toolbar color="primary">
+    <ion-buttons slot="start">
+      <ion-back-button defaultHref="/tabs/tab2"></ion-back-button>
+    </ion-buttons>
+    <ion-title>Detalles del Equipo</ion-title>
+    <ion-buttons slot="end">
+      <ion-button (click)="HHH()">
+        <ion-icon name="qr-code" slot="icon-only"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="ion-padding">
+  <div *ngIf="equipo; else cargando">
+    <!-- Tarjeta de Galería -->
+    <ion-card *ngIf="equipo?.imagenes?.length">
+      <ion-card-header>
+        <ion-card-title class="ion-text-center">Galería</ion-card-title>
+      </ion-card-header>
+      <ion-card-content>
+        <div class="mosaic-grid">
+          <div *ngFor="let img of equipo.imagenes" class="mosaic-item">
+            <img [src]="img.url" alt="Imagen del equipo" class="mosaic-image" />
+          </div>
+        </div>
+      </ion-card-content>
+
+      <ion-card>
+        <ion-card-header>
+          <ion-card-title>{{ equipo.name }}</ion-card-title>
+          <ion-card-subtitle>{{ equipo.categoria }}</ion-card-subtitle>
+        </ion-card-header>
+        
+        <ion-card-content>
+          <p><strong>Descripción:</strong> {{ equipo.description }}</p>
+            <p><strong>Modelo:</strong> {{ equipo.model }}</p>
+            <p><strong>Número de serie:</strong> {{ equipo.nseries }}</p>
+          <p>
+            <strong>Estado:</strong>
+            <ion-badge [color]="getEstadoColor(equipo.estado)">
+              {{ equipo.estado }}
+            </ion-badge>
+            <ion-badge *ngIf="reservaBloqueada" color="danger" class="ion-margin-start">
+              Reservas bloqueadas
+            </ion-badge>
+          </p>
+          <p *ngIf="equipo.numero_serie"><strong>Número de Serie:</strong> {{ equipo.numero_serie }}</p>
+          
+          <!-- Información de Préstamo Activo -->
+          <div *ngIf="prestamoActivo" class="prestamo-info">
+            <p><strong>Préstamo activo:</strong></p>
+            <p>Inicio: {{ prestamoActivo.horaSolicitud }} ({{ prestamoActivo.fecha | date:'mediumDate' }})</p>
+            <p *ngIf="prestamoActivo.horaDevolucion">Fin: {{ prestamoActivo.horaDevolucion }}</p>
+            <p>Tipo: {{ prestamoActivo.tipoPrestamo === 'qr' ? 'Préstamo QR' : 'Reserva' }}</p>
+          </div>
+        </ion-card-content>
+      </ion-card>
+    </ion-card>
+
+    <ion-card>
+      <ion-card-header>
+        <ion-card-title></ion-card-title>
+      </ion-card-header>
+      <ion-card-content>
+        <div *ngIf="selectedRegistro; else sinPrestamo">
+          <ion-list>
+            <ion-item>
+              <ion-label>
+                <h2>Nombre</h2>
+                <p>{{ getNombreUsuario(selectedRegistro) }}</p>
+              </ion-label>
+            </ion-item>
+            <ion-item>
+              <ion-label>
+                <h2>Grupo</h2>
+                <p>{{ getGrupoUsuario(selectedRegistro) }}</p>
+              </ion-label>
+            </ion-item>
+          </ion-list>
+        </div>
+        <ng-template #sinPrestamo>
+          <ion-text color="medium">
+            <p class="ion-text-center">Ningún préstamo activo</p>
+          </ion-text>
+        </ng-template>
+      </ion-card-content>
+    </ion-card>
+
+    <!-- Selector de Horario -->
+    <ion-card>
+      <ion-card-header>
+        <ion-card-title>Selecciona el horario</ion-card-title>
+        <ion-card-subtitle>
+          <ion-datetime-button datetime="datetime"></ion-datetime-button>
+          <ion-modal [keepContentsMounted]="true">
+            <ng-template> 
+              <ion-datetime 
+                id="datetime"
+                presentation="date" 
+                [min]="minDate"
+                [max]="maxDate"
+                [(ngModel)]="selectedDate"
+                (ionChange)="onDateChange($event)"
+              ></ion-datetime>
+            </ng-template>
+          </ion-modal>
+          <ion-select 
+            label="Duración" 
+            [ngModel]="selectedDuration" 
+            (ionChange)="onDurationChange($event)"
+            interface="popover"
+          >
+            <ion-select-option *ngFor="let duration of durationOptions" [value]="duration">
+              {{duration}} hora{{duration > 1 ? 's' : ''}}
+            </ion-select-option>
+          </ion-select>
+        </ion-card-subtitle>
+      </ion-card-header>
+
+      <ion-card-content>
+        <div class="time-grid">
+          <ion-chip *ngFor="let hour of availableHours"
+                    (click)="selectTimeRange(hour)"
+                    [color]="getHourColor(hour)"
+                    [disabled]="isHourDisabled(hour) || reservaBloqueada">
+            {{ hour }}:00
+            <ion-icon [name]="getHourIcon(hour)" slot="end"></ion-icon>
+            <ion-badge *ngIf="isHourQR(hour)" color="tertiary">QR</ion-badge>
+            <ion-badge *ngIf="isHourApproved(hour)" color="danger">R</ion-badge>
+
+          </ion-chip>
+        </div>
+      </ion-card-content>
+    </ion-card>
+
+    <!-- Campo de Observaciones -->
+    <ion-card>
+      <ion-card-header>
+        <ion-card-title>Observaciones (opcional)</ion-card-title>
+      </ion-card-header>
+      <ion-card-content>
+        <ion-item>
+          <ion-textarea [(ngModel)]="observaciones" placeholder="Escribe aquí..." [disabled]="reservaBloqueada"></ion-textarea>
+        </ion-item>
+      </ion-card-content>
+    </ion-card>
+
+    <!-- Mensaje de bloqueo -->
+    <div *ngIf="reservaBloqueada" class="ion-text-center ion-margin">
+      <ion-text color="danger">
+        <p><ion-icon name="alert-circle" class="ion-margin-end"></ion-icon> 
+        Las reservas para este equipo han sido deshabilitadas temporalmente por el administrador.</p>
+      </ion-text>
+    </div>
+
+    <!-- Botones de Acción -->
+    <div class="action-buttons">
+      <ion-button expand="block" shape="round"
+                  [disabled]="!canReserve || reservaBloqueada"
+                  (click)="registrarPrestamo()">
+        <ion-icon name="checkmark-circle" slot="start"></ion-icon>
+        {{ reservaBloqueada ? 'Reservas Bloqueadas' : 'Confirmar Reserva' }}
+      </ion-button>
+
+      <ion-button expand="block" fill="clear" color="medium" (click)="limpiarSeleccion()" [disabled]="reservaBloqueada">
+        Limpiar selección
+      </ion-button>
+    </div>
+  </div>
+
+  <!-- Estado de Carga -->
+  <ng-template #cargando>
+    <div class="loading-container">
+      <ion-spinner name="crescent"></ion-spinner>
+      <p>Cargando detalles del equipo...</p>
+    </div>
+  </ng-template>
+</ion-content>
