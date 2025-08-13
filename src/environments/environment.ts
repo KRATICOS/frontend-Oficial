@@ -10,7 +10,8 @@ export const environment = {
     usuario: 'api/usuarios',
     inventario: 'api/inventario',
     auth: 'api/auth',
-    uploads: 'uploads/'
+    uploads: 'uploads/',
+    categorias: 'api/categorias'
   }
 };
 

@@ -173,62 +173,76 @@ export class Tab5AdminPage implements OnInit {
     }
   }
 
-  async processExcelFile(): Promise<void> {
-    if (!this.selectedFile) {
-      this.presentToast('No se ha seleccionado ningún archivo', 'warning');
+async processExcelFile(): Promise<void> {
+  if (!this.selectedFile) {
+    this.presentToast('No se ha seleccionado ningún archivo', 'warning');
+    return;
+  }
+
+  const loading = await this.loadingCtrl.create({
+    message: 'Procesando archivo Excel...',
+    spinner: 'circles'
+  });
+  
+  await loading.present();
+
+  try {
+    const data = await this.readExcelFile(this.selectedFile);
+    const students = await this.parseExcelData(data);
+    
+    if (students.length === 0) {
+      this.presentToast('No se encontraron estudiantes válidos en el archivo', 'warning');
       return;
     }
 
-    const loading = await this.loadingCtrl.create({
-      message: 'Procesando archivo Excel...',
-      spinner: 'circles'
-    });
+    const result = await this._serviceService.registrarEstudiantesMasivo(students).toPromise();
     
-    await loading.present();
+    // <-- Aquí haces el cambio
+    const resultados = Array.isArray(result) ? result : result?.resultados || [];
+    this.handleRegistrationResults(resultados, students.length);
+    
+  } catch (error: unknown) {
+    this.handleProcessError(error);
+  } finally {
+    await loading.dismiss();
+    this.resetUpload();
+  }
+}
 
-    try {
-      const data = await this.readExcelFile(this.selectedFile);
-      const students = await this.parseExcelData(data);
-      
-      if (students.length === 0) {
-        this.presentToast('No se encontraron estudiantes válidos en el archivo', 'warning');
-        return;
-      }
 
-      const result = await this._serviceService.registrarEstudiantesMasivo(students).toPromise();
-      this.handleRegistrationResults(result || [], students.length);
-      
-    } catch (error: unknown) {
-      this.handleProcessError(error);
-    } finally {
-      await loading.dismiss();
-      this.resetUpload();
-    }
+private handleRegistrationResults(results: (Usuario | { error: any })[], total: number): void {
+  if (!Array.isArray(results)) {
+    console.error('Resultados inválidos:', results);
+    this.presentToast('Error: formato de resultados no válido.', 'danger', 5000);
+    return;
   }
 
-  private handleRegistrationResults(results: (Usuario | {error: any})[], total: number): void {
-    const successCount = results.filter(r => !this.isErrorResponse(r)).length;
-    const errorCount = total - successCount;
-    
-    if (errorCount > 0) {
-      const errorMessages = results
-        .filter(r => this.isErrorResponse(r))
-        .map(r => (r as {error: any}).error?.message || 'Error desconocido')
-        .filter((msg, i, arr) => arr.indexOf(msg) === i) // Eliminar duplicados
-        .join(', ');
-      
-      this.presentToast(
-        `${successCount} registros exitosos. ${errorCount} errores: ${errorMessages}`,
-        'warning',
-        5000
-      );
-    } else {
-      this.presentToast(
-        `Todos los ${successCount} estudiantes fueron registrados correctamente`,
-        'success'
-      );
-    }
+  const successCount = results.filter(r => !this.isErrorResponse(r)).length;
+
+  const duplicatedCount = results.filter(r =>
+    this.isErrorResponse(r) &&
+    r.error?.message?.toLowerCase().includes('ya está registrado')
+  ).length;
+
+  const otherErrorsCount = total - successCount - duplicatedCount;
+
+  if (otherErrorsCount > 0) {
+    this.presentToast(
+      `${successCount} usuario(s) registrado(s) correctamente. ${otherErrorsCount} usuarios duplicados.`,
+      'warning',
+      5000
+    );
+  } else {
+    this.presentToast(
+      `${successCount} usuario(s) registrado(s) correctamente.`,
+      'success'
+    );
   }
+}
+
+
+
+
 
   private isErrorResponse(obj: any): obj is {error: any} {
     return obj && obj.error;
@@ -300,6 +314,7 @@ export class Tab5AdminPage implements OnInit {
         const nombre = rowLower['nombre'] || rowLower['name'] || '';
         const email = (rowLower['correo'] || rowLower['email'] || '').toString().toLowerCase().trim();
         const grupo = (rowLower['grupo'] || '').toString().trim();
+        const telefono = (rowLower['telefono'] || '').toString().trim();
 
         if (!matricula || !nombre || !email) {
           console.warn(`Fila ${index + 1} omitida: faltan datos requeridos`);
@@ -316,8 +331,8 @@ export class Tab5AdminPage implements OnInit {
           email,
           matricula: matricula.toString().trim(),
           grupo: grupo || 'SIN GRUPO',
-          password: 'Matricula1',
-          tel: '9512548985' // Teléfono por defecto
+          password: matricula.toString().trim(),
+          tel: telefono.toString().trim(), // Teléfono por defecto
         });
       } catch (error) {
         console.error(`Error procesando fila ${index + 1}:`, error);

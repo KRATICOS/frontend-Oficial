@@ -4,10 +4,13 @@ import {
   FormBuilder, 
   FormGroup, 
   Validators, 
-  ReactiveFormsModule,FormsModule 
+  ReactiveFormsModule,
+  FormsModule,
+  AbstractControl,
+  ValidationErrors,
+  ValidatorFn 
 } from '@angular/forms';
 import {
-  
   IonCheckbox,
   IonContent,
   IonItem,
@@ -35,17 +38,20 @@ import {
   IonButtons,
   IonChip,
   IonSearchbar,
-  AlertController, IonText, IonGrid, IonRow, IonCol } from '@ionic/angular/standalone';
+  AlertController, 
+  IonText, 
+  IonGrid, 
+  IonRow, 
+  IonCol 
+} from '@ionic/angular/standalone';
 import { RouterModule, Router } from '@angular/router';
 import { ServiceService } from 'src/app/services/service.service';
 import { ToastController, LoadingController } from '@ionic/angular';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Usuario } from 'src/app/interface';
 import { addIcons } from 'ionicons';
-
 import { cameraOutline, imageOutline, trash } from 'ionicons/icons';
 import { forkJoin } from 'rxjs';
-
 
 @Component({
   selector: 'app-addadmin',
@@ -54,7 +60,7 @@ import { forkJoin } from 'rxjs';
   standalone: true,
   imports: [
     FormsModule,
-  IonCheckbox,
+    IonCheckbox,
     IonChip,
     IonButtons,
     IonFooter,
@@ -81,11 +87,12 @@ import { forkJoin } from 'rxjs';
     IonAvatar,
     IonCard,
     IonIcon,
-    IonSearchbar
+    IonSearchbar,
+    IonText
   ]
 })
 export class AddadminPage implements OnInit {
-    iconos: string[] = [
+  iconos: string[] = [
     'add', 'albums', 'alert-circle', 'arrow-forward-outline', 'barcode', 'calendar',
     'call-outline', 'camera-outline', 'checkmark', 'checkmark-circle', 'close', 'close-circle',
     'construct', 'create-outline', 'cube', 'document-attach-outline', 'ellipsis-vertical-outline',
@@ -94,10 +101,13 @@ export class AddadminPage implements OnInit {
     'notifications-outline', 'people-outline', 'person-outline', 'pricetag', 'qr-code',
     'reader', 'return-down-back', 'save', 'search', 'time', 'trash', 'trash-outline', 'warning'
   ];
+  
+  currentUser!: Usuario;
   userForm: FormGroup;
   selectedFiles: File[] = [];
   imagePreview: string | ArrayBuffer | null = null;
-  
+  showPassword: boolean = false;
+  passwordFieldType: string = 'password';
   // Gestión de usuarios
   allUsers: Usuario[] = [];
   filteredUsers: Usuario[] = [];
@@ -124,18 +134,34 @@ export class AddadminPage implements OnInit {
     addIcons({ cameraOutline, imageOutline, trash });
     
     this.userForm = this.fb.group({
-      name: ['', Validators.required],
-      email: ['', [Validators.required, Validators.email]],
-      password: ['', [Validators.required, Validators.minLength(6)]],
+      name: ['', [Validators.required, Validators.pattern(/^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$/)]],
+      email: ['', [
+        Validators.required, 
+        Validators.email,
+        this.emailInstitucionalValidator()
+      ]],
+      password: ['', [
+        Validators.required, 
+        Validators.minLength(8),
+        this.passwordStrengthValidator()
+      ]],
       tel: ['', [Validators.required, Validators.pattern(/^[0-9]{10}$/)]],
       rol: ['user', Validators.required],
       matricula: [''],
       grupo: ['']
     });
 
+    // Escuchar cambios en matrícula para revalidar email
+    this.userForm.get('matricula')?.valueChanges.subscribe(() => {
+      this.userForm.get('email')?.updateValueAndValidity();
+    });
+
     this.userForm.get('rol')?.valueChanges.subscribe((rol) => {
       if (rol === 'user') {
-        this.userForm.get('matricula')?.setValidators([Validators.required]);
+        this.userForm.get('matricula')?.setValidators([
+          Validators.required,
+          Validators.pattern(/^[A-Za-z0-9]+$/)
+        ]);
         this.userForm.get('grupo')?.setValidators([Validators.required]);
       } else {
         this.userForm.get('matricula')?.clearValidators();
@@ -143,9 +169,67 @@ export class AddadminPage implements OnInit {
         this.userForm.get('matricula')?.setValue('');
         this.userForm.get('grupo')?.setValue('');
       }
+      
       this.userForm.get('matricula')?.updateValueAndValidity();
       this.userForm.get('grupo')?.updateValueAndValidity();
     });
+  }
+
+  cancel() {
+    this.router.navigate(['/tabs-Admin/tab5']);
+
+}
+
+   togglePasswordVisibility() {
+    this.showPassword = !this.showPassword;
+    this.passwordFieldType = this.showPassword ? 'text' : 'password';
+  }
+
+
+  // Validador personalizado para correo institucional (actualizado)
+  private emailInstitucionalValidator(): ValidatorFn {
+    return (control: AbstractControl): ValidationErrors | null => {
+      const email = control.value;
+      const matriculaControl = control.parent?.get('matricula');
+      
+      if (!email || !matriculaControl) {
+        return null;
+      }
+
+      // Validar dominio
+      const dominioValido = email.endsWith('@utvco.edu.mx');
+      if (!dominioValido) {
+        return { dominioInvalido: true };
+      }
+
+      // Validar coincidencia con matrícula (solo si el rol es 'user')
+      if (this.userForm?.get('rol')?.value === 'user') {
+        const nombreUsuario = email.split('@')[0];
+        const matricula = matriculaControl.value;
+        
+        if (nombreUsuario !== matricula) {
+          return { matriculaNoCoincide: true };
+        }
+      }
+
+      return null;
+    };
+  }
+
+  // Validador para fuerza de contraseña
+  private passwordStrengthValidator(): ValidatorFn {
+    return (control: AbstractControl): ValidationErrors | null => {
+      const value = control.value;
+      if (!value) return null;
+      
+      const hasUpperCase = /[A-Z]/.test(value);
+      const hasLowerCase = /[a-z]/.test(value);
+      const hasNumber = /[0-9]/.test(value);
+      const hasSpecialChar = /[!@#$%^&*(),.?":{}|<>]/.test(value);
+      
+      const valid = hasUpperCase && hasLowerCase && hasNumber && hasSpecialChar;
+      return valid ? null : { passwordWeak: true };
+    };
   }
 
   ngOnInit(): void {
@@ -165,7 +249,7 @@ export class AddadminPage implements OnInit {
 
   async onSubmit() {
     if (this.userForm.invalid) {
-      this.presentToast('Por favor, completa todos los campos correctamente.', 'warning');
+      this.validarFormulario();
       return;
     }
 
@@ -198,15 +282,14 @@ export class AddadminPage implements OnInit {
         next: async () => {
           await loading.dismiss();
           this.presentToast('Usuario registrado correctamente.', 'success');
-          this.resetForm();
-          this.loadUsers(); // Actualizar lista después de registrar
+          this.cancel();
+          this.loadUsers();
         },
         error: async (err: HttpErrorResponse) => {
           await loading.dismiss();
           this.handleError(err);
         }
       });
-
     } else if (rol === 'admin') {
       const adminData: Partial<Usuario> & { password: string } = {
         name: this.userForm.value.name,
@@ -220,8 +303,8 @@ export class AddadminPage implements OnInit {
         next: async () => {
           await loading.dismiss();
           this.presentToast('Administrador registrado correctamente.', 'success');
-          this.resetForm();
-          this.loadUsers(); // Actualizar lista después de registrar
+          this.cancel();
+          this.loadUsers();
         },
         error: async (err: HttpErrorResponse) => {
           await loading.dismiss();
@@ -231,6 +314,24 @@ export class AddadminPage implements OnInit {
     } else {
       await loading.dismiss();
       this.presentToast('Rol inválido.', 'danger');
+    }
+  }
+
+  private validarFormulario() {
+    const emailErrors = this.userForm.get('email')?.errors;
+    
+    if (emailErrors) {
+      if (emailErrors['dominioInvalido']) {
+        this.presentToast('El correo debe tener el dominio @utvco.edu.mx', 'warning');
+      } else if (emailErrors['matriculaNoCoincide']) {
+        this.presentToast('El nombre de usuario del correo debe coincidir con la matrícula', 'warning');
+      } else if (emailErrors['email']) {
+        this.presentToast('Por favor ingresa un correo electrónico válido', 'warning');
+      } else {
+        this.presentToast('Por favor, completa todos los campos correctamente.', 'warning');
+      }
+    } else {
+      this.presentToast('Por favor, completa todos los campos correctamente.', 'warning');
     }
   }
 
@@ -259,9 +360,7 @@ export class AddadminPage implements OnInit {
     toast.present();
   }
 
-  resetForm() {
-    this.router.navigate(['/tabs-Admin/tab5']);
-  }
+
 
   async loadUsers() {
     const loading = await this.loadingController.create({
@@ -276,7 +375,6 @@ export class AddadminPage implements OnInit {
         this.totalUsers = response.totalDocs;
         this.totalPages = Math.ceil(this.totalUsers / this.itemsPerPage);
         
-        // Extraer grupos únicos para el filtro
         this.uniqueGroups = [...new Set(
           this.allUsers
             .filter(user => user.grupo)
@@ -297,7 +395,6 @@ export class AddadminPage implements OnInit {
   applyFilters() {
     let filtered = [...this.allUsers];
     
-    // Aplicar filtro de búsqueda
     if (this.searchTerm) {
       const term = this.searchTerm.toLowerCase();
       filtered = filtered.filter(user => 
@@ -307,12 +404,10 @@ export class AddadminPage implements OnInit {
       );
     }
     
-    // Aplicar filtro de grupo
     if (this.selectedGroup) {
       filtered = filtered.filter(user => user.grupo === this.selectedGroup);
     }
     
-    // Paginación
     this.filteredUsers = filtered.slice(
       (this.currentPage - 1) * this.itemsPerPage,
       this.currentPage * this.itemsPerPage
@@ -425,7 +520,6 @@ export class AddadminPage implements OnInit {
         loading.dismiss();
         this.presentToast('Error al eliminar algunos usuarios', 'danger');
         console.error(err);
-        // Recargar para mostrar estado actual
         this.loadUsers();
       }
     });

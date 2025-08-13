@@ -3,20 +3,23 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { 
   IonContent, IonButton, IonItem, IonLabel, IonSelect, IonSelectOption, 
-  IonInput, IonList, IonTitle, IonToolbar, IonHeader, IonCard, IonCardHeader, 
+  IonInput, IonList, IonCard, IonCardHeader, 
   IonCardTitle, IonCardContent, IonButtons, IonBackButton, IonGrid, IonRow, 
   IonCol, IonIcon, IonChip, IonTextarea, IonToast 
 } from '@ionic/angular/standalone';
 import { InventarioService } from '../services/inventario.service';
 import { Router } from '@angular/router';
 import { Inventario } from '../interface';
-import { ToastController } from '@ionic/angular';
+import { ToastController, IonicModule } from '@ionic/angular';
 import { addIcons } from 'ionicons';
+
 import {
   checkmarkCircle, closeCircle, construct, notificationsOutline, mailOutline, 
   logOutOutline, arrowForwardOutline, createOutline, add, barcode, cube, pricetag, 
-  reader, albums
+  reader, albums,
 } from 'ionicons/icons';
+import { ModalController } from '@ionic/angular';
+import { CategoriaModalComponent } from '../components/categoria-modal.component.ts/categoria-modal.component';
 
 addIcons({
   'checkmark-circle':  checkmarkCircle,
@@ -42,10 +45,9 @@ addIcons({
   schemas: [CUSTOM_ELEMENTS_SCHEMA],
   standalone: true,
   imports: [
-    IonChip, IonIcon, IonCol, IonRow, IonGrid,
-    IonCardContent, IonCardTitle, IonCardHeader, IonCard, IonHeader, IonToolbar, 
-    IonTitle, IonList, CommonModule, FormsModule, IonContent, IonButton, IonItem, 
-    IonLabel, IonInput, IonTextarea, IonSelect, IonSelectOption
+    CommonModule,
+    FormsModule,
+    IonicModule
   ]
 })
 export class Tab4AdminPage implements OnInit {
@@ -55,15 +57,7 @@ export class Tab4AdminPage implements OnInit {
 
     equipoId: string = ''; // Nueva propiedad para almacenar el ID del equipo
   isEditing: boolean = false;
-
-  readonly categorias: string[] = [
-    'Herramientas',
-    'Proyectores',
-    'Mecánica',
-    'Componentes',
-    'Laboratorio',
-    'Instrumento de medicion'
-  ];
+  categorias: string[] = [];
 
   equipo: Inventario = {
     name: '',
@@ -80,10 +74,25 @@ export class Tab4AdminPage implements OnInit {
   selectedFiles: File[] = [];
   imagenesPreview: string[] = [];
 
-  constructor() {
+  constructor(private modalCtrl: ModalController) {
       addIcons({closeCircle,add,cube,pricetag,reader,albums,barcode,checkmarkCircle,construct});}
 
-  ngOnInit() {}
+  ngOnInit() {
+    this.cargarCategorias();
+  }
+
+
+  cargarCategorias() {
+  this.inventarioService.obtenerCategorias().subscribe({
+    next: (categorias: string[]) => {
+      this.categorias = categorias;
+    },
+    error: (error) => {
+      this.presentToast('Error al cargar categorías', 'danger');
+      console.error(error);
+    }
+  });
+}
 
   onFileSelected(event: Event): void {
     const input = event.target as HTMLInputElement;
@@ -112,6 +121,15 @@ export class Tab4AdminPage implements OnInit {
       reader.readAsDataURL(file);
     });
   }
+
+
+  async abrirModalCategorias() {
+  const modal = await this.modalCtrl.create({
+    component: CategoriaModalComponent
+  });
+
+  await modal.present();
+}
 
   removeImage(index: number): void {
     this.imagenesPreview.splice(index, 1);

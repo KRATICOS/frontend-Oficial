@@ -1,5 +1,5 @@
 {
-  "name": "MaterialsDispenser",
+  "name": "materialsdispenser",
   "version": "0.0.1",
   "author": "Ionic Framework",
   "homepage": "https://ionicframework.com/",
@@ -30,6 +30,7 @@
     "@capacitor/status-bar": "7.0.1",
     "@ionic/angular": "^8.0.0",
     "@zxing/ngx-scanner": "^20.0.0",
+    "bcryptjs": "^3.0.2",
     "bootstrap": "^5.3.7",
     "ionicons": "^7.0.0",
     "jwt-decode": "^4.0.0",
@@ -37,6 +38,7 @@
     "socket.io-client": "^4.8.1",
     "swiper": "^11.2.8",
     "tslib": "^2.3.0",
+    "xlsx": "^0.18.5",
     "zone.js": "~0.15.0"
   },
   "devDependencies": {
@@ -51,8 +53,10 @@
     "@angular/language-service": "^19.0.0",
     "@capacitor/cli": "^7.4.0",
     "@ionic/angular-toolkit": "^12.0.0",
+    "@types/bcryptjs": "^3.0.0",
     "@types/jasmine": "~5.1.0",
     "@types/socket.io-client": "^3.0.0",
+    "@types/xlsx": "^0.0.36",
     "@typescript-eslint/eslint-plugin": "^8.18.0",
     "@typescript-eslint/parser": "^8.18.0",
     "eslint": "^9.16.0",

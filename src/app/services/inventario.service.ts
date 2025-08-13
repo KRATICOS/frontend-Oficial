@@ -12,6 +12,7 @@ import { HistorialService } from './historial.service';
 })
 export class InventarioService {
   private baseUrl = `${environment.apiUrl}${environment.endpoints.inventario}`;
+    private apiUrl = `${environment.apiUrl}${environment.endpoints.categorias}`;
   private http = inject(HttpClient);
   private notificationService = inject(NotificationService);
   private toastController = inject(ToastController);
@@ -206,6 +207,20 @@ actualizarEquipo(id: string, data: Partial<Inventario> | FormData): Observable<I
   }
 
 
+// Obtener todas las categorías
+obtenerCategorias() {
+  return this.http.get<string[]>(`${this.apiUrl}/`);
+}
+
+// Crear nueva categoría
+crearCategoria(nombre: string) {
+  return this.http.post(`${this.apiUrl}/`, { nombre });
+}
+
+// Eliminar categoría por nombre
+eliminarCategoria(nombre: string) {
+  return this.http.delete(`${this.apiUrl}/${nombre}`);
+}
 
 
 

@@ -59,7 +59,7 @@ export class ReservaPage implements OnInit, OnDestroy {
   durationOptions = [1, 2, 3, 4, 6, 8];
   selectedDuration = 1;
   selectedRegistro: Registro | null = null; 
-    
+   isAdmin: boolean = false; 
 
   
   private bloqueoHorasQR: {[hora: number]: boolean} = {};
@@ -105,6 +105,7 @@ private verificarPrestamoActivo(historial: Registro[]) {
 
 
   ngOnInit() {
+    
     this.initializePage();
     this.iniciarMonitorHoraActual();
     this.cargarPrestamoActivo();
@@ -402,6 +403,11 @@ isHourDisabled(hour: number): boolean {
   const selectedDay = new Date(selectedDateObj.getFullYear(), selectedDateObj.getMonth(), selectedDateObj.getDate());
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
+  //  Rango escolar permitido: de 7:00 a 18:00 (es decir, horas 7 a 17 inclusive)
+  if (hour < 7 || hour > 18) {
+    return true; // Bloquea fuera del horario escolar
+  }
+
   // Si el equipo está en mantenimiento, deshabilita todas las horas
   if (this.equipo?.estado === 'En Mantenimiento') {
     return true;
@@ -412,12 +418,9 @@ isHourDisabled(hour: number): boolean {
     return true;
   }
 
-  // Si es el día actual
-  if (selectedDay.getTime() === today.getTime()) {
-    // Permitir la hora actual y 1 hora antes (horaActual - 1)
-    if (hour < now.getHours()) {
-  return true;  // 🔒 bloquear solo horas anteriores a (hora actual - 1)
-}
+  // Si es el día actual, bloquea horas pasadas
+  if (selectedDay.getTime() === today.getTime() && hour < now.getHours()) {
+    return true;
   }
 
   // Deshabilitar si está reservada, aprobada o es QR
@@ -428,9 +431,11 @@ isHourDisabled(hour: number): boolean {
   return false;
 }
 
-  generateAvailableHours() {
-    this.availableHours = Array.from({ length: 24 }, (_, i) => i);
-  }
+generateAvailableHours() {
+  // Genera horas del 7 (7:00 AM) al 20 (8:00 PM)
+  this.availableHours = Array.from({ length: 14 }, (_, i) => i + 7);
+}
+
 
   isHourAvailable(hour: number): boolean {
     return !this.isHourDisabled(hour);

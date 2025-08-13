@@ -219,12 +219,12 @@ getColorForEstado(estado: string): string {
     }
   }
 
-async deleteNotification(notification: NotificacionReserva, event: Event) {
+async deleteReservacion(notification: NotificacionReserva, event: Event) {
   event.stopPropagation(); // Evitar que el clic active el markAsRead
 
   const alert = await this.alertController.create({
     header: 'Confirmar',
-    message: '¿Deseas eliminar esta notificación?',
+    message: '¿Deseas eliminar esta reservacion ?',
     buttons: [
       { text: 'Cancelar', role: 'cancel' },
       {

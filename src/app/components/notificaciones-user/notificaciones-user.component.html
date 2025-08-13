@@ -43,14 +43,14 @@
       </ion-badge>
 
 
-          <ion-button 
-      fill="clear" 
-      color="danger" 
-      slot="end" 
-      (click)="deleteNotification(notif, $event)">
-      <ion-icon slot="icon-only" name="trash"></ion-icon>
-    </ion-button>
-    
+      <ion-button 
+        fill="clear" 
+        color="danger" 
+        slot="end" 
+        class="cancel-button"
+        (click)="deleteReservacion(notif, $event)">
+        Cancelar<br>reserva
+      </ion-button>
     </ion-item>
   </ion-list>
 

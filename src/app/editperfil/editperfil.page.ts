@@ -66,13 +66,13 @@ addIcons({
     IonAvatar,
     IonCardContent,
     IonIcon,
-    IonBackButton,
     IonButtons,
   ],
 })
 export class EditperfilPage implements OnInit {
   userForm!: FormGroup;
-  Usuario!: Usuario;
+  
+  usuario: Partial<Usuario> = { name: '', email: '' };
   selectedFiles: File[] = [];
   userId!: string;
   previewImage: string | null = null; // Simplificado a solo string
@@ -100,27 +100,26 @@ export class EditperfilPage implements OnInit {
     }
 
     this.initForm();
-    this.loadUser();
+    this.cargarUsuario();
   }
 
-  initForm() {
-    this.userForm = this.fb.group({
-      name: ['', Validators.required],
-      email: ['', [Validators.required, Validators.email]],
-      password: [''],
-      tel: [''],
-      matricula: [''],
-      grupo: [''],
-      rol: [{ value: this.currentUser.rol, disabled: true }]
-    });
+initForm() {
+  this.userForm = this.fb.group({
+    name: [this.usuario.name || '', Validators.required],
+    email: [this.usuario.email || '', [Validators.required, Validators.email]],
+    password: [''],
+    tel: [this.usuario.tel || ''],
+    matricula: [this.usuario.matricula || ''],
+    grupo: [this.usuario.grupo || ''],
+    rol: [{ value: this.usuario.rol || '', disabled: true }]
+  });
 
-    if (!this.isAdmin) {
-      this.userForm.get('tel')?.setValidators([Validators.required]);
-      this.userForm.get('matricula')?.setValidators([Validators.required]);
-      this.userForm.get('grupo')?.setValidators([Validators.required]);
-    }
+  if (!this.isAdmin) {
+    this.userForm.get('tel')?.setValidators([Validators.required]);
+    this.userForm.get('matricula')?.setValidators([Validators.required]);
+    this.userForm.get('grupo')?.setValidators([Validators.required]);
   }
-
+}
 
   async onSubmit() {
   if (this.userForm.invalid) {
@@ -223,29 +222,34 @@ cancel() {
 
 
   // Función loadUser actualizada
-loadUser() {
-  this.userService.getUserById(this.userId).subscribe({
-    next: (user) => {
-      this.currentUser = user;
-      this.userForm.patchValue({
-        name: user.name,
-        email: user.email,
-        tel: user.tel,
-        matricula: user.matricula,
-        grupo: user.grupo,
-        rol: user.rol
-      });
+private async cargarUsuario(): Promise<void> {
+  const userLS = localStorage.getItem('User');
+  if (userLS && userLS !== 'undefined') {
+    const parsed = JSON.parse(userLS);
 
-      // Limpiar y cargar imágenes preview
-      this.imagenesPreview = [];
-      
-      if (user.imagen && user.imagen.length > 0) {
-        this.imagenesPreview = [...user.imagen]; // Copiamos el array de strings
-      }
-    },
-    error: (err) => console.error(err),
-  });
+    this.usuario = {
+      _id: parsed._id || '',
+      name: parsed.name || '',
+      email: parsed.email || '',
+      tel: parsed.tel || '',
+      rol: parsed.rol || '',
+      imagen: parsed.imagen || (parsed.imagenes?.[0]?.url || ''),
+      matricula: parsed.matricula || '',
+      grupo: parsed.grupo || ''
+    };
+
+    // Llena el formulario con los datos del usuario
+    this.userForm.patchValue({
+      name: this.usuario.name,
+      email: this.usuario.email,
+      tel: this.usuario.tel,
+      matricula: this.usuario.matricula,
+      grupo: this.usuario.grupo,
+      rol: this.usuario.rol
+    });
+  }
 }
+
 
 // Función removeImage actualizada
 removeImage(index: number) {
@@ -267,6 +271,23 @@ removeImage(index: number) {
   
   this.presentToast('Imagen eliminada', 'warning');
 }
+
+
+
+
+  getImagenPerfil(): string {
+    if (this.usuario?.imagen) {
+      return this.usuario.imagen && this.usuario.imagen[0]?.startsWith('http') 
+        ? this.usuario.imagen[0] 
+        : `http://localhost:3001/${this.usuario.imagen?.[0]}`;
+    }
+    return 'assets/utvcoIMAGEN.jpg';
+  }
+
+  onImageError(event: Event): void {
+    (event.target as HTMLImageElement).src = 'assets/utvcoIMAGEN.jpg';
+  }
+
 
 // Función clearForm actualizada
 clearForm() {

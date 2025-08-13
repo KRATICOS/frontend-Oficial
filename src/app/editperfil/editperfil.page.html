@@ -8,9 +8,9 @@
   <ion-card>
 <ion-card-header class="avatar-container">
   <div class="avatar-wrapper">
-    <ion-avatar class="profile-avatar">
-      <img [src]="previewImage || 'assets/utvcoIMAGEN.jpg'" alt="Foto de perfil" />
-    </ion-avatar>
+      <ion-avatar class="profile-avatar">
+        <img [src]="usuario.imagen" (error)="onImageError($event)" alt="Foto de perfil" />
+      </ion-avatar>
 
     <ion-buttons class="avatar-buttons">
       <ion-button fill="clear" (click)="fileInput.click()" size="small">

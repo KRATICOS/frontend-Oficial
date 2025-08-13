@@ -80,22 +80,9 @@ updateUser(userId: string, data: any, isFormData = false): Observable<any> {
 }
 
 registrarEstudiantesMasivo(estudiantes: any[]): Observable<any> {
-  // Convertimos el array de estudiantes en un array de promesas de registro individual
-  const registros$ = estudiantes.map(estudiante => {
-    const formData = new FormData();
-    formData.append('name', estudiante.name);
-    formData.append('email', estudiante.email);
-    formData.append('password', estudiante.password);
-    formData.append('tel', '0000000000'); // Teléfono por defecto
-    formData.append('rol', 'user');
-    formData.append('matricula', estudiante.matricula);
-    formData.append('grupo', estudiante.grupo);
-    
-    return this.createUser(formData);
-  });
-
-  // Convertimos el array de observables en un solo observable
-  return forkJoin(registros$);
+  return this.http.post(`${this.baseUrl}/create-masivo`, estudiantes).pipe(
+    catchError(this.handleError)
+  );
 }
 
 

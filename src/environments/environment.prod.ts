@@ -1,11 +1,12 @@
 export const environment = {
   production: true,
-  apiUrl: 'http://localhost:3001/',
+  apiUrl: 'https://mdbackend-ys7z.onrender.com/',
   endpoints: {
     historial: 'api/historial',
     usuario: 'api/usuarios',
     inventario: 'api/inventario',
     auth: 'api/auth',
-    uploads: 'uploads/'
+    uploads: 'uploads/',
+  categorias: 'api/categorias'
   }
 };
